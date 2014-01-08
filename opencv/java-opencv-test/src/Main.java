@@ -31,7 +31,7 @@ public class Main {
 
 		// Setup the camera
 		VideoCapture camera = new VideoCapture();
-		camera.open(0);
+		camera.open(1);
 		
 		// Create GUI windows to display camera output and OpenCV output
 		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
