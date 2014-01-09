@@ -11,8 +11,12 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ImageProcessor {
-	static Scalar greenFilterLower = new Scalar(40, 60, 60);
+	static Scalar greenFilterLower = new Scalar(40, 40, 40);
 	static Scalar greenFilterUpper = new Scalar(80, 255, 255);
+	static Scalar redFilterLower = new Scalar(0, 40, 40);
+	static Scalar redFilterUpper = new Scalar(30, 255, 255);
+	static Scalar colorFilterLower = redFilterLower;
+	static Scalar colorFilterUpper = redFilterUpper;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
@@ -32,12 +36,12 @@ public class ImageProcessor {
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
 		// Find green stuff
-		Mat greenMask = new Mat();
-		Core.inRange(hsvImage, greenFilterLower, greenFilterUpper, greenMask);
-		// Find blobs of green
+		Mat colorMask = new Mat();
+		Core.inRange(hsvImage, colorFilterLower, colorFilterUpper, colorMask);
+		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat hierarchy = new Mat();
-		Imgproc.findContours(greenMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+		Imgproc.findContours(colorMask.clone(), contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 		// Look for the "best" blob
 		// The best blob is the largest one that is also
 		// - Roughly square / circular
@@ -67,9 +71,15 @@ public class ImageProcessor {
 		}
 		// Display the ball we found.
 		Core.rectangle(rawImage, bestBoundingRect.tl(), bestBoundingRect.br(), GREEN);
-//		Mat output = new Mat();
-//		Imgproc.cvtColor(greenMask, output, Imgproc.COLOR_GRAY2BGR);
-		return rawImage;
+		
+		// Also show the masked input.
+		Mat output = new Mat();
+		Imgproc.cvtColor(colorMask, output, Imgproc.COLOR_GRAY2BGR);
+//		hsvImage.release();
+//		colorMask.release();
+//		hierarchy.release();
+//		contours.clear();
+		return output;
 	}
 	
 }
