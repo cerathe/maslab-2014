@@ -11,18 +11,40 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ImageProcessor {
-	static Scalar greenFilterLower = new Scalar(40, 40, 40);
-	static Scalar greenFilterUpper = new Scalar(80, 255, 255);
-	static Scalar redFilterLower = new Scalar(0, 40, 40);
-	static Scalar redFilterUpper = new Scalar(30, 255, 255);
-	static Scalar colorFilterLower = redFilterLower;
-	static Scalar colorFilterUpper = redFilterUpper;
+	static int greenLowerH = 40;
+	static int greenUpperH = 80;
+	static int redLowerH = 170;
+	static int redUpperH = 10;
+	static int lowerS = 120;
+	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+	}
+	
+	static Mat colorFilter(Mat input, int lowerH, int upperH){
+		/*
+		 * Finds all pixels of input image (in HSV form) that have hue between 
+		 * lowerH and upperH.  Is smart about H wrap-around: for example, if
+		 * lowerH = 170 and upperH = 10, it will find lowerH between 170 and 180;
+		 * as well as between 180 and 10.
+		 */
+		Mat output = new Mat();
+		Scalar lowerHSV = new Scalar(lowerH, lowerS, lowerV);
+		Scalar upperHSV = new Scalar(upperH, 255, 255);
+		if (upperH > lowerH) {
+			Core.inRange(input, lowerHSV, upperHSV, output);
+		} else {
+			Mat part1 = new Mat();
+			Mat part2 = new Mat();
+			Core.inRange(input, lowerHSV, new Scalar(180, 255, 255), part1);
+			Core.inRange(input, new Scalar(0, lowerS, lowerV), upperHSV, part2);
+			Core.bitwise_or(part1, part2, output);
+		}
+		return output;
 	}
 
 	// Input: an image from the camera
@@ -36,8 +58,9 @@ public class ImageProcessor {
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
 		// Find green stuff
-		Mat colorMask = new Mat();
-		Core.inRange(hsvImage, colorFilterLower, colorFilterUpper, colorMask);
+		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+		// Core.inRange(hsvImage, redFilterLower, redFilterUpper, colorMask);
+		
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat hierarchy = new Mat();
