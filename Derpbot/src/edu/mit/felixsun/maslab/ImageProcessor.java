@@ -98,7 +98,7 @@ public class ImageProcessor {
 		double offset;
 		if (bestBlob == -1) {
 			// Actually, we couldn't even find the ball.  Report this.
-			offset = -1;
+			offset = -2;
 		} else {
 			// Offset:
 			// -1 means all the way to the left

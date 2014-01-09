@@ -100,6 +100,7 @@ class cvHandle implements Runnable {
 
 public class Main {
 	public static int SPEED = 20;
+	public static double I_GAIN = 0;
 
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
@@ -121,20 +122,23 @@ public class Main {
 
 		while (true) {
 			double offset;
+			double diff;
+			double integral = 0;
 			int motorA = 0;
 			int motorB = 0;
 			synchronized(data){
 				offset = data.offset;
 			}
-			System.out.println(offset);
-			if (offset < 0){
+			if (offset < -1){
 				// We don't see color.  Just keep spinning.
 				motorA = 0;
 				motorB = 0;
 			} else {
 				// Steer proportional to where the color is.
-				motorA = (int) (SPEED + offset*SPEED*2);
-				motorB = (int) (20 - offset*SPEED*2);
+				integral += offset;
+				diff = SPEED*offset + I_GAIN*integral;
+				motorA = (int) (SPEED - diff);
+				motorB = (int) (SPEED + diff);
 			}
 
 			byte[] outData = new byte[4];
