@@ -37,8 +37,6 @@ class cvHandle implements Runnable {
 	Thread t;
 	public cvHandle(cvData initData) {
 		data = initData;
-		t = new Thread(this);
-		t.run();
 	}
 	
 	public void run(){
@@ -46,7 +44,7 @@ class cvHandle implements Runnable {
 
 		// Setup the camera
 		VideoCapture camera = new VideoCapture();
-		camera.open(1);
+		camera.open(2);
 		
 		// Create GUI windows to display camera output and OpenCV output
 		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -64,10 +62,7 @@ class cvHandle implements Runnable {
 			camera.retrieve(rawImage);
 			
 			// Process the image however you like
-			cvData tempData = ImageProcessor.process(rawImage, processedImage);
-			synchronized(data) {
-				data = tempData;
-			}
+			ImageProcessor.process(rawImage, processedImage, data);
 			
 			// Update the GUI windows
 			updateWindow(cameraPane, rawImage);
@@ -104,15 +99,18 @@ class cvHandle implements Runnable {
 
 
 public class Main {
+	public static int SPEED = 20;
 
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
 		cvData data = new cvData();
 		cvHandle handle = new cvHandle(data); // Run the cv stuff.
+		Thread cvThread = new Thread(handle);
+		cvThread.start();
 
 		// Start serial communication.
 		SerialPort serialPort;
-		serialPort = new SerialPort("COM4");
+		serialPort = new SerialPort("COM5");
 		try {
             serialPort.openPort();
             serialPort.setParams(115200, 8, 1, 0);
@@ -128,14 +126,15 @@ public class Main {
 			synchronized(data){
 				offset = data.offset;
 			}
+			System.out.println(offset);
 			if (offset < 0){
 				// We don't see color.  Just keep spinning.
-				motorA = 20;
-				motorB = -20;
+				motorA = 0;
+				motorB = 0;
 			} else {
 				// Steer proportional to where the color is.
-				motorA = (int) (20 + offset*40);
-				motorB = (int) (20 - offset*40);
+				motorA = (int) (SPEED + offset*SPEED*2);
+				motorB = (int) (20 - offset*SPEED*2);
 			}
 
 			byte[] outData = new byte[4];

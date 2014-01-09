@@ -50,7 +50,7 @@ public class ImageProcessor {
 	// Input: an image from the camera, an empty mat to store an output image (for
 	// visual debugging only).
 	// Output: A cvData structure, containing data that the main controller wants to know.
-	public static cvData process(Mat rawImage, Mat processedImage) {
+	public static void process(Mat rawImage, Mat processedImage, cvData data) {
 		// Convert to HSV
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
@@ -106,9 +106,9 @@ public class ImageProcessor {
 			// 0 means centered
 			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - rawImage.width() / 2) / rawImage.width();
 		}
-		cvData outData = new cvData();
-		outData.offset = offset;
-		return outData;
+		synchronized(data) {
+			data.offset = offset;
+		}
 	}
 	
 }
