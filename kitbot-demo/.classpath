@@ -7,5 +7,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/kitbot-demo/lib/jSSC-2.6.0-Release/javadoc/jssc-2.6.0-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="jssc.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
