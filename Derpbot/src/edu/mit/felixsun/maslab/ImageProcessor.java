@@ -54,7 +54,18 @@ public class ImageProcessor {
 		// Convert to HSV
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
-		// Find green stuff
+		
+		// Run each sub-processor in succession.
+		// In the future, the robot controller may tell us to only do certain processes, to save
+		// time.
+		findBalls(hsvImage, new Mat(), data);
+		findWalls(hsvImage, processedImage, data);
+	}
+
+	
+	static void findBalls(Mat hsvImage, Mat processedImage, cvData data) {
+		// Find balls - green for now.
+		// Arbitrary colors coming soon.
 		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
 		// Core.inRange(hsvImage, redFilterLower, redFilterUpper, colorMask);
 		
@@ -89,8 +100,6 @@ public class ImageProcessor {
 				bestBoundingRect = boundingRect;
 			}
 		}
-		// Display the ball we found.
-		Core.rectangle(rawImage, bestBoundingRect.tl(), bestBoundingRect.br(), GREEN);
 		// Also show the masked input.
 		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
 		
@@ -104,11 +113,15 @@ public class ImageProcessor {
 			// -1 means all the way to the left
 			// 1 means all the way to the right
 			// 0 means centered
-			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - rawImage.width() / 2) / rawImage.width();
+			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - hsvImage.width() / 2) / hsvImage.width();
 		}
 		synchronized(data) {
 			data.offset = offset;
 		}
 	}
 	
+	static void findWalls(Mat hsvImage, Mat processedImage, cvData data) {
+		
+	}
+
 }
