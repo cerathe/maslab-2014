@@ -25,7 +25,7 @@ class cvData {
 	 */
 	public double offset;
 	public cvData() {
-		offset = -1;
+		offset = -2;
 	}
 }
 
