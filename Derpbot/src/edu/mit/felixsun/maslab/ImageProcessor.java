@@ -15,6 +15,8 @@ public class ImageProcessor {
 	static int greenUpperH = 80;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
+	static int blueLowerH = 100;
+	static int blueUpperH = 140;
 	static int lowerS = 120;
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
@@ -58,7 +60,7 @@ public class ImageProcessor {
 		// Run each sub-processor in succession.
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
-		findBalls(hsvImage, new Mat(), data);
+		// findBalls(hsvImage, new Mat(), data);
 		findWalls(hsvImage, processedImage, data);
 	}
 
@@ -67,7 +69,6 @@ public class ImageProcessor {
 		// Find balls - green for now.
 		// Arbitrary colors coming soon.
 		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
-		// Core.inRange(hsvImage, redFilterLower, redFilterUpper, colorMask);
 		
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -121,7 +122,20 @@ public class ImageProcessor {
 	}
 	
 	static void findWalls(Mat hsvImage, Mat processedImage, cvData data) {
-		
+		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH);
+//		// Where are there blue lines?
+//		// tops stores all the locations where we transition from non-blue to blue.
+//		// This corresponds to the top of the blue stripe.
+//		// bottoms stores all the locations where we transition from blue to non-blue.
+//		// This corresponds to the bottom of the blue stripe.
+//		Mat tops = new Mat();
+//		Mat bottoms = new Mat();
+//		// Sobel(in, out, format, x-derivative, y-derivative, matrix size, multiplier, delta)
+//		Imgproc.Sobel(colorMask, tops, -1, 0, 1);
+//		Imgproc.Sobel(colorMask, bottoms, -1, 0, 1, 1, -1, 0);
+		Mat heights = new Mat();
+		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM);
+		Imgproc.cvtColor(heights, processedImage, Imgproc.COLOR_GRAY2BGR);
 	}
 
 }
