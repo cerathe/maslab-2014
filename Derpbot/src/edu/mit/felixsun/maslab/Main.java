@@ -2,6 +2,7 @@ package edu.mit.felixsun.maslab;
 
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -24,8 +25,10 @@ class cvData {
 	 * and the rest of the code.
 	 */
 	public double offset;
+	public double[] wall;
 	public cvData() {
 		offset = -2;
+		wall = new double[] {0, 0, 0};
 	}
 }
 
@@ -44,7 +47,7 @@ class cvHandle implements Runnable {
 
 		// Setup the camera
 		VideoCapture camera = new VideoCapture();
-		camera.open(2);
+		camera.open(0);
 		
 		// Create GUI windows to display camera output and OpenCV output
 		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -99,8 +102,14 @@ class cvHandle implements Runnable {
 
 
 public class Main {
+	//ball following
 	public static int SPEED = 20;
 	public static double I_GAIN = 0;
+	
+	//wall following
+	public static double OPTIMALBEARING = 50;
+	public static double WALLSPEED = 0.1;
+	public static double I_GAIN_WALL = 0;
 
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
@@ -121,18 +130,47 @@ public class Main {
 		}
 
 		while (true) {
+			//for ball following
 			double offset;
 			double diff;
 			double integral = 0;
+			
+			//for wall following
+			double[] wall = new double[]{0, 0, 0}; 
+			double walloffset = 0;
+			double walldiff;
+			double wallint = 0;
+			
 			int motorA = 0;
 			int motorB = 0;
 			synchronized(data){
 				offset = data.offset;
+				wall = data.wall;
 			}
 			if (offset < -1){
-				// We don't see color.  Just keep spinning.
-				motorA = 0;
-				motorB = 0;
+				// We don't see color.
+				if(Arrays.equals(wall, new double[]{0, 0, 0})){
+					//or a wall.
+					motorA = 0;
+					motorB = 0;
+				}
+				else{
+					// we see a wall: steer proportional to your offset from the wall.
+					double onRight = wall[2];
+					double wallLength = wall[0];
+					double bearing = wall[1];
+					
+					// if bearing > OPTIMALBEARING, then the wall looks wider than it should.
+				    // This means that if the wall is on the right, you steer to the left. 
+					// Thus, positive walloffset means steer leftward.
+					walloffset= onRight*(bearing-OPTIMALBEARING);
+					wallint += walloffset;
+					walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
+					motorA = (int) (SPEED + walldiff);
+					motorB = (int) (SPEED - walldiff);
+					
+				}
+				
 			} else {
 				// Steer proportional to where the color is.
 				integral += offset;

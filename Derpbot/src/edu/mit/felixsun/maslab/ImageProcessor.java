@@ -3,8 +3,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
@@ -15,11 +18,18 @@ public class ImageProcessor {
 	static int greenUpperH = 80;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
+	static int blueLowerH = 90;
+	static int blueUpperH = 130;
 	static int lowerS = 120;
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
+	static Scalar YELLOW = new Scalar(0,255,255);
+	static Scalar RED = new Scalar(0,0,255);
+	static Scalar BLUE = new Scalar(255,0,0);
+	static double POLYAPPROXEPSILON = 30;
+	
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -59,7 +69,7 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 		findBalls(hsvImage, new Mat(), data);
-		findWalls(hsvImage, processedImage, data);
+		findWalls(hsvImage, processedImage, blueLowerH, blueUpperH, data);
 	}
 
 	
@@ -120,7 +130,141 @@ public class ImageProcessor {
 		}
 	}
 	
-	static void findWalls(Mat hsvImage, Mat processedImage, cvData data) {
+	//Return the rightmost point in a List<Point>
+	private static int[] rightMostTwo(List<Point> list){
+		int best = 0;
+		int secondBest = 0;
+		for(int i=0; i<list.size(); i++){
+			if(list.get(i).x>list.get(best).x){
+				best = i;
+			}
+			else{
+				if(list.get(i).x>list.get(secondBest).x){
+					secondBest=i;
+				}
+			}
+		}
+		if(list.get(best).y<list.get(secondBest).y){
+			return new int[]{best,secondBest};
+		}
+		else{
+			return new int[]{secondBest,best};
+		}
+	}
+	
+	//Return the leftmost point in a List<Point>
+	private static int[] leftMostTwo(List<Point> list){
+		int best = 0;
+		int secondBest = 0;
+		for(int i=0; i<list.size(); i++){
+			if(list.get(i).x<list.get(best).x){
+				best = i;
+			}
+			else{
+				if(list.get(i).x<list.get(secondBest).x){
+					secondBest=i;
+				}
+			}
+		}
+		if(list.get(best).y<list.get(secondBest).y){
+			return new int[]{best,secondBest};
+		}
+		else{
+			return new int[]{secondBest,best};
+		}
+	}
+
+	static void findWalls(Mat hsvImage, Mat processedImage, int lowerHue, int upperHue, cvData data) {
+		//Filter image by color
+		Mat colorMask = new Mat();
+		colorMask = colorFilter(hsvImage, lowerHue, upperHue);
+		//Find the largest connected component
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Mat hierarchy = new Mat();
+		Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		double biggestArea = 0;
+		int bestBlob = 0;
+		double thisArea = 0;
+		for(int i=0; i<contours.size(); i++){
+			thisArea = Imgproc.boundingRect(contours.get(i)).area();
+			if(thisArea >biggestArea){
+				bestBlob = i;
+				biggestArea = thisArea; 
+			}
+		}
+		
+		//Approximate the blob by a coarse polygon
+		MatOfPoint2f polygon = new MatOfPoint2f();
+		MatOfPoint2f strip = new MatOfPoint2f(contours.get(bestBlob).toArray());
+		Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
+		
+		MatOfPoint poly = new MatOfPoint(polygon.toArray());
+		List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
+		
+		//Get the left and right heights of the polygon.
+		//If the blob is well-behaved (which it should be during MASLAB),
+		// these correspond to the leftmost and rightmost heights.
+		//Left height := vertical distance between the two leftmost vertices.
+		List<Point> polylist = poly.toList();
+		int[] pts = leftMostTwo(polylist);
+		Point pt1 = polylist.get(pts[0]);
+		Point pt2 = polylist.get(pts[1]);
+		double leftHeight = Math.abs(pt1.y-pt2.y);
+		//Right height := vertical distance between the two rightmost vertices.
+		int[] pts2 = rightMostTwo(polylist);
+		Point pt3 = polylist.get(pts2[0]);
+		Point pt4 = polylist.get(pts2[1]);
+		double rightHeight = Math.abs(pt3.y-pt4.y);
+		
+		boolean onRight = false;
+		double bigHeight = 0;
+		if(rightHeight>leftHeight){
+			onRight = true;
+			bigHeight = rightHeight;
+		}else{
+			bigHeight = leftHeight;
+		}
+		//Get the other two points of the closest wall
+		Point pt5 = pt1.clone();
+		Point pt6 = pt1.clone();
+		int[] closestWall = new int[2];
+		if(onRight){
+			closestWall = pts2;
+			pt5 = polylist.get((closestWall[0]+1)%polylist.size());
+			pt6 = polylist.get((closestWall[1]-1+polylist.size())%polylist.size());
+		}
+		else{
+			closestWall = pts;
+			pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
+			pt6 = polylist.get((closestWall[1]+1)%polylist.size());
+		}
+
+		double smallHeight = pt5.y-pt6.y;
+		
+		//bigHeight/smallHeight is proportional to the length of the wall.
+		double wallLength = Math.abs(bigHeight/smallHeight);
+		
+		//wallWidth is how wide the wall is on the image plane. 
+		double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
+		//so wallWidth/wallLength is a measure of your angle wrt the wall.
+		
+		//We should just measure which value of wallWidth/wallLength is optimal in static OPTIMALBEARING.
+		double bearing = wallWidth/wallLength;
+		System.out.println(bearing);
+		
+		/* data.wall is: 
+		* (0,0,0) if no wall
+		* (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
+		*/
+		double[] output = new double[] {0, 0, 0};
+		if(wallWidth>0.0){
+			output[0] = wallLength;
+			output[1] = bearing;
+			output[2] = onRight? 1:-1;
+		}
+		synchronized(data) {
+			data.wall = output;
+		}
 		
 	}
 
