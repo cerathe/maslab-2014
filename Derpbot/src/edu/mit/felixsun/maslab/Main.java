@@ -28,7 +28,7 @@ class cvData {
 	public double[] wall;
 	public cvData() {
 		offset = -2;
-		wall = new double[] {0, 0, 0, 0};
+		wall = new double[] {0, 0, 0, 0, 0};
 	}
 }
 

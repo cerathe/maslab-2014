@@ -18,8 +18,8 @@ public class ImageProcessor {
 	static int greenUpperH = 80;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
-	static int blueLowerH = 90;
-	static int blueUpperH = 130;
+	static int blueLowerH = 100;
+	static int blueUpperH = 140;
 	static int lowerS = 120;
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
@@ -28,7 +28,7 @@ public class ImageProcessor {
 	static Scalar YELLOW = new Scalar(0,255,255);
 	static Scalar RED = new Scalar(0,0,255);
 	static Scalar BLUE = new Scalar(255,0,0);
-	static double POLYAPPROXEPSILON = 30;
+	static double POLYAPPROXEPSILON = 5;
 	static double MIN_GOOD_AREA = 200;
 	//find this
 	static double INCHESPERPIXEL = 1;
@@ -263,6 +263,11 @@ public class ImageProcessor {
 		* (0,0,0) if no wall
 		* (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
 		*/
+		
+		//Draw stuff
+		for(int i=0; i<polylist.size()-1; i++){
+			Core.line(processedImage, polylist.get(i),polylist.get(i+1), BLUE);
+		}
 		
 		double[] output = new double[] {0, 0, 0, 0, 0};
 		if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
