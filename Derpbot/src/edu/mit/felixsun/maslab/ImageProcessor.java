@@ -29,7 +29,11 @@ public class ImageProcessor {
 	static Scalar RED = new Scalar(0,0,255);
 	static Scalar BLUE = new Scalar(255,0,0);
 	static double POLYAPPROXEPSILON = 30;
+	static double MIN_GOOD_AREA = 200;
+	//find this
+	static double INCHESPERPIXEL = 1;
 	
+	static double VIEWANGLE = Math.PI/2;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -192,7 +196,7 @@ public class ImageProcessor {
 				biggestArea = thisArea; 
 			}
 		}
-		
+		double bestArea = Imgproc.contourArea(contours.get(bestBlob));
 		//Approximate the blob by a coarse polygon
 		MatOfPoint2f polygon = new MatOfPoint2f();
 		MatOfPoint2f strip = new MatOfPoint2f(contours.get(bestBlob).toArray());
@@ -241,26 +245,32 @@ public class ImageProcessor {
 
 		double smallHeight = pt5.y-pt6.y;
 		
-		//bigHeight/smallHeight is proportional to the length of the wall.
-		double wallLength = Math.abs(bigHeight/smallHeight);
-		
 		//wallWidth is how wide the wall is on the image plane. 
 		double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
-		//so wallWidth/wallLength is a measure of your angle wrt the wall.
-		
-		//We should just measure which value of wallWidth/wallLength is optimal in static OPTIMALBEARING.
-		double bearing = wallWidth/wallLength;
-		System.out.println(bearing);
+		double closeSideAngle = VIEWANGLE*(1 - polylist.get(closestWall[0]).x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
+		double farSideAngle = VIEWANGLE *(1- pt5.x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
+		//get angle between two sides of wall
+		double wallAngle = VIEWANGLE * wallWidth/hsvImage.width();
+		//distance to each side of wall in inches
+		double closeDist = INCHESPERPIXEL * bigHeight;
+		double farDist = INCHESPERPIXEL * smallHeight;
+		//Length of wall: law of cosines
+		double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
+		//Direction of altitude to wall by law of sines
+		double bearingAngle = Math.acos(farDist*Math.sin(wallAngle)/wallLength) + (Math.PI - VIEWANGLE)/2;
 		
 		/* data.wall is: 
 		* (0,0,0) if no wall
 		* (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
 		*/
-		double[] output = new double[] {0, 0, 0};
-		if(wallWidth>0.0){
+		
+		double[] output = new double[] {0, 0, 0, 0, 0};
+		if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
 			output[0] = wallLength;
-			output[1] = bearing;
-			output[2] = onRight? 1:-1;
+			output[1] = closeSideAngle;
+			output[2] = farSideAngle;
+			output[3] = bearingAngle;
+			output[4] = onRight? 1:-1;
 		}
 		synchronized(data) {
 			data.wall = output;

@@ -28,7 +28,7 @@ class cvData {
 	public double[] wall;
 	public cvData() {
 		offset = -2;
-		wall = new double[] {0, 0, 0};
+		wall = new double[] {0, 0, 0, 0};
 	}
 }
 
@@ -47,7 +47,7 @@ class cvHandle implements Runnable {
 
 		// Setup the camera
 		VideoCapture camera = new VideoCapture();
-		camera.open(0);
+		camera.open(1);
 		
 		// Create GUI windows to display camera output and OpenCV output
 		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -65,6 +65,7 @@ class cvHandle implements Runnable {
 			camera.retrieve(rawImage);
 			
 			// Process the image however you like
+			processedImage = Mat.zeros(rawImage.size(), rawImage.type());
 			ImageProcessor.process(rawImage, processedImage, data);
 			
 			// Update the GUI windows
@@ -136,7 +137,7 @@ public class Main {
 			double integral = 0;
 			
 			//for wall following
-			double[] wall = new double[]{0, 0, 0}; 
+			double[] wall = new double[]{0, 0, 0, 0, 0}; 
 			double walloffset = 0;
 			double walldiff;
 			double wallint = 0;
@@ -149,22 +150,21 @@ public class Main {
 			}
 			if (offset < -1){
 				// We don't see color.
-				if(Arrays.equals(wall, new double[]{0, 0, 0})){
+				if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
 					//or a wall.
 					motorA = 0;
 					motorB = 0;
 				}
 				else{
 					// we see a wall: steer proportional to your offset from the wall.
-					double onRight = wall[2];
+					double onRight = wall[4];
 					double wallLength = wall[0];
-					double bearing = wall[1];
+					double bearing = wall[3];
 					
-					// if bearing > OPTIMALBEARING, then the wall looks wider than it should.
-				    // This means that if the wall is on the right, you steer to the left. 
-					// Thus, positive walloffset means steer leftward.
-					walloffset= onRight*(bearing-OPTIMALBEARING);
+					// if bearing > PI/2, then you're facing away from the wall.
+					walloffset= onRight*(bearing-Math.PI/2);
 					wallint += walloffset;
+					
 					walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
 					motorA = (int) (SPEED + walldiff);
 					motorB = (int) (SPEED - walldiff);
