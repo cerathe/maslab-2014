@@ -2,6 +2,8 @@ package edu.mit.felixsun.maslab;
 
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.HashMap;
 
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -24,8 +26,38 @@ class cvData {
 	 * and the rest of the code.
 	 */
 	public double offset;
+	public SparseGrid grid;
+	public double gridSize = 2;
 	public cvData() {
 		offset = -2;
+		grid = new SparseGrid(gridSize);
+	}
+}
+
+class SparseGrid {
+	/*
+	 * A sparse-matrix style 2D grid, that stores an integer at each point.
+	 */
+	public double gridSize; // Inches per grid square
+	public HashMap<java.util.Map.Entry<Integer, Integer>, Integer> map;
+
+	public SparseGrid(double scale) {
+		gridSize = scale;
+		map = new HashMap<>();
+	}
+	
+	public void set(double x, double y, int value) {
+		int xIndex = (int) (x / gridSize);
+		int yIndex = (int) (y / gridSize);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<>(xIndex, yIndex);
+		map.put(coords, value);
+	}
+	
+	public int get(double x, double y) {
+		int xIndex = (int) (x / gridSize);
+		int yIndex = (int) (y / gridSize);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<>(xIndex, yIndex);
+		return map.get(coords);
 	}
 }
 
@@ -44,7 +76,7 @@ class cvHandle implements Runnable {
 
 		// Setup the camera
 		VideoCapture camera = new VideoCapture();
-		camera.open(2);
+		camera.open(0);
 		
 		// Create GUI windows to display camera output and OpenCV output
 		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -62,7 +94,7 @@ class cvHandle implements Runnable {
 			camera.retrieve(rawImage);
 			
 			// Process the image however you like
-			ImageProcessor.process(rawImage, processedImage, data);
+			processedImage = ImageProcessor.process(rawImage, data);
 			
 			// Update the GUI windows
 			updateWindow(cameraPane, rawImage);
