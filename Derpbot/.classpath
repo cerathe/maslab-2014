@@ -3,9 +3,9 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="jssc.jar"/>
-	<classpathentry kind="lib" path="C:/OpenCV/opencv/build/java/opencv-246.jar">
+	<classpathentry kind="lib" path="/Users/vipul/opencv-2.4.7/build/bin/opencv-247.jar">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/OpenCV/opencv/build/java/x64"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Users/vipul/opencv-2.4.7/build/lib"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>

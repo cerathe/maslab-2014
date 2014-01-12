@@ -3,6 +3,7 @@ package edu.mit.felixsun.maslab;
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import edu.mit.felixsun.maslab.ImageProcessor;
@@ -28,9 +29,11 @@ class cvData {
 	public double offset;
 	public SparseGrid grid;
 	public double gridSize = 2;
+	public double[] wall;
 	public cvData() {
 		offset = -2;
 		grid = new SparseGrid(gridSize);
+		wall = new double[] {0,0,0,0,0};
 	}
 }
 
@@ -43,20 +46,20 @@ class SparseGrid {
 
 	public SparseGrid(double scale) {
 		gridSize = scale;
-		map = new HashMap<>();
+		map = new HashMap();
 	}
 	
 	public void set(double x, double y, int value) {
 		int xIndex = (int) (x / gridSize);
 		int yIndex = (int) (y / gridSize);
-		SimpleEntry<Integer, Integer> coords = new SimpleEntry<>(xIndex, yIndex);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
 		map.put(coords, value);
 	}
 	
 	public int get(double x, double y) {
 		int xIndex = (int) (x / gridSize);
 		int yIndex = (int) (y / gridSize);
-		SimpleEntry<Integer, Integer> coords = new SimpleEntry<>(xIndex, yIndex);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
 		return map.get(coords);
 	}
 }
@@ -75,23 +78,27 @@ class cvHandle implements Runnable {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
 		// Setup the camera
-		VideoCapture camera = new VideoCapture();
-		camera.open(0);
+//		VideoCapture camera = new VideoCapture();
+//		camera.open(1);
 		
 		// Create GUI windows to display camera output and OpenCV output
-		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
-		int height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
+//		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
+//		int height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
+		Mat img = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/walls.png", Highgui.CV_LOAD_IMAGE_COLOR); 
+		int width = img.width();
+		int height = img.height();
 		JLabel cameraPane = createWindow("Camera output", width, height);
 		JLabel opencvPane = createWindow("OpenCV output", width, height);
 
 		// Main loop
-		Mat rawImage = new Mat();
+		Mat rawImage = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/walls.png", Highgui.CV_LOAD_IMAGE_COLOR); 
+;
 		Mat processedImage = new Mat();
 		while (true) {
 			
 			// Wait until the camera has a new frame
-			camera.grab();
-			camera.retrieve(rawImage);
+//			camera.grab();
+//			camera.retrieve(rawImage);
 			
 			// Process the image however you like
 			processedImage = ImageProcessor.process(rawImage, data);
@@ -133,7 +140,10 @@ class cvHandle implements Runnable {
 public class Main {
 	public static int SPEED = 20;
 	public static double I_GAIN = 0;
-
+    public static double WALLSPEED = 0.1;
+    public static double I_GAIN_WALL = 0;
+    public static double TOOCLOSE = 10;
+    
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
 		cvData data = new cvData();
@@ -153,25 +163,62 @@ public class Main {
 		}
 
 		while (true) {
-			double offset;
-			double diff;
-			double integral = 0;
-			int motorA = 0;
-			int motorB = 0;
-			synchronized(data){
-				offset = data.offset;
-			}
-			if (offset < -1){
-				// We don't see color.  Just keep spinning.
-				motorA = 0;
-				motorB = 0;
-			} else {
-				// Steer proportional to where the color is.
-				integral += offset;
-				diff = SPEED*offset + I_GAIN*integral;
-				motorA = (int) (SPEED - diff);
-				motorB = (int) (SPEED + diff);
-			}
+            //for ball following
+            double offset;
+            double diff;
+            double integral = 0;
+            
+            //for wall following
+            double[] wall = new double[]{0, 0, 0, 0, 0}; 
+            double walloffset = 0;
+            double walldiff;
+            double wallint = 0;
+            
+            int motorA = 0;
+            int motorB = 0;
+            synchronized(data){
+                    offset = data.offset;
+                    wall = data.wall;
+            }
+            if (offset < -1){
+                    // We don't see color.
+                    if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
+                            //or a wall.
+                            motorA = 0;
+                            motorB = 0;
+                    }
+                    else{
+                            // we see a wall: steer proportional to your offset from the wall.
+                            double onRight = wall[4];
+                            double wallDist = wall[0];
+                            double bearing = wall[3];
+                            if(wallDist>TOOCLOSE){
+                            	motorA = (int) SPEED;
+                            	motorB = (int) SPEED;
+                            }
+                            else{
+                            	motorA = (int) -onRight* SPEED;
+                            	motorB = (int) onRight * SPEED;
+                            }
+                            
+//                            
+//                            // if bearing > PI/2, then you're facing away from the wall.
+//                            walloffset= onRight*(bearing-Math.PI/2);
+//                            wallint += walloffset;
+//                            
+//                            walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
+//                            motorA = (int) (SPEED + walldiff);
+//                            motorB = (int) (SPEED - walldiff);
+//                            
+                    }
+                    
+            } else {
+                    // Steer proportional to where the color is.
+                    integral += offset;
+                    diff = SPEED*offset + I_GAIN*integral;
+                    motorA = (int) (SPEED - diff);
+                    motorB = (int) (SPEED + diff);
+            }
 
 			byte[] outData = new byte[4];
 			outData[0] = 'S';				// Start signal "S"

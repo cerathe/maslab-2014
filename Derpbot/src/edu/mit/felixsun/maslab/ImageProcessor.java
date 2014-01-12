@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
@@ -27,9 +28,17 @@ public class ImageProcessor {
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
+    static Scalar YELLOW = new Scalar(0,255,255);
+    static Scalar RED = new Scalar(0,0,255);
+    static Scalar BLUE = new Scalar(255,0,0);
+    
+    static double POLYAPPROXEPSILON = 5;
+    static double MIN_GOOD_AREA = 200;
+    
+    static double VIEWANGLE = Math.PI/2;
 	
 	// Camera and world parameters.  All length units in inches.
-	static double wallStripeHeight = 11;
+	static double wallStripeHeight = 2;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -78,7 +87,7 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 		// findBalls(hsvImage, new Mat(), data);
-		processedImage = findWalls(hsvImage, data);
+		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data);
 		return processedImage;
 	}
 
@@ -135,6 +144,7 @@ public class ImageProcessor {
 			// 0 means centered
 			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - hsvImage.width() / 2) / hsvImage.width();
 		}
+		
 		synchronized(data) {
 			data.offset = offset;
 		}
@@ -184,6 +194,190 @@ public class ImageProcessor {
 		}
 		Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
 		return processedImage;
+	}
+	
+    //Return the rightmost point in a List<Point>
+    private static int[] rightMostTwo(List<Point> list){
+            int best = 0;
+            int secondBest = 0;
+            for(int i=0; i<list.size(); i++){
+                    if(list.get(i).x>list.get(best).x){
+                            best = i;
+                    }
+                    else{
+                            if(list.get(i).x>list.get(secondBest).x){
+                                    secondBest=i;
+                            }
+                    }
+            }
+            if(list.get(best).y<list.get(secondBest).y){
+                    return new int[]{best,secondBest};
+            }
+            else{
+                    return new int[]{secondBest,best};
+            }
+    }
+    
+    //Return the leftmost point in a List<Point>
+    private static int[] leftMostTwo(List<Point> list){
+            int best = 0;
+            int secondBest = 0;
+            for(int i=0; i<list.size(); i++){
+                    if(list.get(i).x<list.get(best).x){
+                            best = i;
+                    }
+                    else{
+                            if(list.get(i).x<list.get(secondBest).x){
+                                    secondBest=i;
+                            }
+                    }
+            }
+            if(list.get(best).y<list.get(secondBest).y){
+                    return new int[]{best,secondBest};
+            }
+            else{
+                    return new int[]{secondBest,best};
+            }
+    }
+	
+	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data){
+		double scale = 10; // Pixels / inch
+		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
+		//Filter image by color
+        Mat colorMask = new Mat();
+        colorMask = colorFilter(hsvImage, lowerHue, upperHue);
+        //Find the largest connected component
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        double biggestArea = 0;
+        int bestBlob = 0;
+        double thisArea = 0;
+        for(int i=0; i<contours.size(); i++){
+                thisArea = Imgproc.boundingRect(contours.get(i)).area();
+                if(thisArea >biggestArea){
+                        bestBlob = i;
+                        biggestArea = thisArea; 
+                }
+        }
+        double bestArea = Imgproc.contourArea(contours.get(bestBlob));
+        //Approximate the blob by a coarse polygon
+        MatOfPoint2f polygon = new MatOfPoint2f();
+        MatOfPoint2f strip = new MatOfPoint2f(contours.get(bestBlob).toArray());
+        Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
+        MatOfPoint poly = new MatOfPoint(polygon.toArray());
+        //get heights
+        SparseGrid grid = new SparseGrid(data.gridSize);
+		Mat heights = new Mat();
+        //Draw stuff
+        List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
+        approxWall.add(poly);
+        Imgproc.drawContours(processedImage,approxWall,0, BLUE, -1);
+		Core.reduce(processedImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
+		for (int i = 0; i < heights.width(); i++) {
+            double thisHeight = heights.get(0, i)[0] / 255;
+            System.out.println(thisHeight);
+            if (thisHeight < 2) {
+                    continue;
+            }
+            double distance = distanceConvert(thisHeight, wallStripeHeight);
+            System.out.println(distance);
+            double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
+            double wallX = Math.cos(angle)*distance;
+            double wallY = Math.sin(angle)*distance;
+            grid.set(wallX, wallY, 1);        // 1 = generic blue wall.
+		}
+        
+        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
+        
+        //Get the left and right heights of the polygon.
+        //If the blob is well-behaved (which it should be during MASLAB),
+        // these correspond to the leftmost and rightmost heights.
+        //Left height := vertical distance between the two leftmost vertices.
+        List<Point> polylist = poly.toList();
+        int[] pts = leftMostTwo(polylist);
+        Point pt1 = polylist.get(pts[0]);
+        Point pt2 = polylist.get(pts[1]);
+        double leftHeight = Math.abs(pt1.y-pt2.y);
+        //Right height := vertical distance between the two rightmost vertices.
+        int[] pts2 = rightMostTwo(polylist);
+        Point pt3 = polylist.get(pts2[0]);
+        Point pt4 = polylist.get(pts2[1]);
+        double rightHeight = Math.abs(pt3.y-pt4.y);
+        
+        boolean onRight = false;
+        double bigHeight = 0;
+        if(rightHeight>leftHeight){
+                onRight = true;
+                bigHeight = rightHeight;
+        }else{
+                bigHeight = leftHeight;
+        }
+        //Get the other two points of the closest wall
+        Point pt5 = pt1.clone();
+        Point pt6 = pt1.clone();
+        int[] closestWall = new int[2];
+        if(onRight){
+                closestWall = pts2;
+                pt5 = polylist.get((closestWall[0]+1)%polylist.size());
+                pt6 = polylist.get((closestWall[1]-1+polylist.size())%polylist.size());
+        }
+        else{
+                closestWall = pts;
+                pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
+                pt6 = polylist.get((closestWall[1]+1)%polylist.size());
+        }
+
+        double smallHeight = pt5.y-pt6.y;
+        
+        //wallWidth is how wide the wall is on the image plane. 
+        double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
+        double closeSideAngle = VIEWANGLE*(1 - polylist.get(closestWall[0]).x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
+        double farSideAngle = VIEWANGLE *(1- pt5.x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
+        //get angle between two sides of wall
+        double wallAngle = VIEWANGLE * wallWidth/hsvImage.width();
+        //distance to each side of wall in inches
+        double closeDist =  distanceConvert(bigHeight, wallStripeHeight);
+        double farDist = distanceConvert(smallHeight, wallStripeHeight);
+        //Length of wall: law of cosines
+        double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
+        //Direction of altitude to wall by law of sines
+        double bearingAngle = Math.acos(farDist*Math.sin(wallAngle)/wallLength) + (Math.PI - VIEWANGLE)/2;
+        double wallDist = closeDist*Math.cos(closeSideAngle);
+        /* data.wall is: 
+        * (0,0,0,0,0) if no wall
+        * (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
+        */
+        
+
+        
+        double[] output = new double[] {0, 0, 0, 0, 0};
+        if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
+                output[0] = wallDist;
+                output[1] = closeSideAngle;
+                output[2] = farSideAngle;
+                output[3] = bearingAngle;
+                output[4] = onRight? 1:-1;
+        }
+        
+        synchronized(data) {
+                data.wall = output;
+                data.grid = grid;
+        }
+//        return processedImage;
+        processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
+        Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
+        
+        while (keys.hasNext()) {
+            Entry<Integer, Integer> coords = keys.next();
+            Point tl = new Point(coords.getKey() * grid.gridSize * scale + processedImage.width() / 2, 
+                            coords.getValue() * grid.gridSize * scale);
+            Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
+                            (coords.getValue() + 1) * grid.gridSize * scale);
+            Core.rectangle(processedImage, tl, br, GREEN);
+	    }
+	    Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
+	    return processedImage;
 	}
 
 }
