@@ -1,9 +1,14 @@
 package edu.mit.felixsun.maslab;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
@@ -17,11 +22,14 @@ public class ImageProcessor {
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
 	static int blueUpperH = 140;
-	static int lowerS = 120;
+	static int lowerS = 100;
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
+	
+	// Camera and world parameters.  All length units in inches.
+	static double wallStripeHeight = 11;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -48,11 +56,20 @@ public class ImageProcessor {
 		}
 		return output;
 	}
+	
+	static double distanceConvert(double pixelHeight, double objectHeight) {
+		/*
+		 * Given an object that is objectHeight tall in the real world, and shows up as
+		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
+		 */
+		return (282.3 / pixelHeight) * objectHeight;
+	}
 
 	// Input: an image from the camera, an empty mat to store an output image (for
 	// visual debugging only).
 	// Output: A cvData structure, containing data that the main controller wants to know.
-	public static void process(Mat rawImage, Mat processedImage, cvData data) {
+	public static Mat process(Mat rawImage, cvData data) {
+		Mat processedImage = new Mat();
 		// Convert to HSV
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
@@ -61,11 +78,12 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 		// findBalls(hsvImage, new Mat(), data);
-		findWalls(hsvImage, processedImage, data);
+		processedImage = findWalls(hsvImage, data);
+		return processedImage;
 	}
 
 	
-	static void findBalls(Mat hsvImage, Mat processedImage, cvData data) {
+	static Mat findBalls(Mat hsvImage, cvData data) {
 		// Find balls - green for now.
 		// Arbitrary colors coming soon.
 		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
@@ -102,6 +120,7 @@ public class ImageProcessor {
 			}
 		}
 		// Also show the masked input.
+		Mat processedImage = new Mat();
 		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
 		
 		// How far off the center of the screen is the ball?
@@ -119,23 +138,52 @@ public class ImageProcessor {
 		synchronized(data) {
 			data.offset = offset;
 		}
+		return processedImage;
 	}
 	
-	static void findWalls(Mat hsvImage, Mat processedImage, cvData data) {
+	static Mat findWalls(Mat hsvImage, cvData data) {
+		double scale = 10; // Pixels / inch
+		Mat processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
+		// Find all the wall stripes - TODO: make more general.
 		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH);
-//		// Where are there blue lines?
-//		// tops stores all the locations where we transition from non-blue to blue.
-//		// This corresponds to the top of the blue stripe.
-//		// bottoms stores all the locations where we transition from blue to non-blue.
-//		// This corresponds to the bottom of the blue stripe.
-//		Mat tops = new Mat();
-//		Mat bottoms = new Mat();
-//		// Sobel(in, out, format, x-derivative, y-derivative, matrix size, multiplier, delta)
-//		Imgproc.Sobel(colorMask, tops, -1, 0, 1);
-//		Imgproc.Sobel(colorMask, bottoms, -1, 0, 1, 1, -1, 0);
+		// Calculate heights.
 		Mat heights = new Mat();
-		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM);
-		Imgproc.cvtColor(heights, processedImage, Imgproc.COLOR_GRAY2BGR);
+		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
+		// Convert heights to distances, and plot walls on a map.
+		SparseGrid grid = new SparseGrid(data.gridSize);
+		for (int i = 0; i < heights.width(); i++) {
+			double thisHeight = heights.get(0, i)[0] / 255;
+			if (thisHeight < 2) {
+				continue;
+			}
+			double distance = distanceConvert(thisHeight, wallStripeHeight);
+			double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
+			double wallX = Math.cos(angle)*distance;
+			double wallY = Math.sin(angle)*distance;
+			grid.set(wallX, wallY, 1);	// 1 = generic blue wall.
+		}
+		
+		// Shove new map into data
+		synchronized(data) {
+			data.grid = grid;
+		}
+		
+		// Draw the grid we just made.
+		// Note: potential concurrency problems exist here, since the grid structure is
+		// now shared between the vision and control threads.  However, this next section is
+		// for visualization only, so it's OK if it messes up a little.
+		Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
+		// Oh God, that last line is so terrible.  I miss Python.
+		while (keys.hasNext()) {
+			Entry<Integer, Integer> coords = keys.next();
+			Point tl = new Point(coords.getKey() * grid.gridSize * scale + processedImage.width() / 2, 
+					coords.getValue() * grid.gridSize * scale);
+			Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
+					(coords.getValue() + 1) * grid.gridSize * scale);
+			Core.rectangle(processedImage, tl, br, GREEN);
+		}
+		Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
+		return processedImage;
 	}
 
 }
