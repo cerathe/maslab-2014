@@ -13,6 +13,7 @@ import org.opencv.core.Point;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 
@@ -23,6 +24,8 @@ public class ImageProcessor {
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
 	static int blueUpperH = 140;
+	static int yellowLowerH = 25;
+	static int yellowUpperH = 35;
 	static int lowerS = 100;
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
@@ -32,13 +35,14 @@ public class ImageProcessor {
     static Scalar RED = new Scalar(0,0,255);
     static Scalar BLUE = new Scalar(255,0,0);
     
-    static double POLYAPPROXEPSILON = 5;
+    static double POLYAPPROXEPSILON = 3;
     static double MIN_GOOD_AREA = 200;
     
     static double VIEWANGLE = Math.PI/2;
 	
 	// Camera and world parameters.  All length units in inches.
 	static double wallStripeHeight = 2;
+	static double ballDiameter = 2;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -90,8 +94,12 @@ public class ImageProcessor {
 		// Run each sub-processor in succession.
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
-		// findBalls(hsvImage, new Mat(), data);
-		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data);
+		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
+		processedImage = findWallsPoly(hsvImage, greenLowerH, greenUpperH, data, 3);
+		processedImage = findWallsPoly(hsvImage, yellowLowerH, yellowUpperH, data, 4);
+		processedImage = findBalls(hsvImage, data);
+		processedImage = drawGrid(hsvImage.size(), data);
+		
 		return processedImage;
 	}
 
@@ -99,7 +107,7 @@ public class ImageProcessor {
 	static Mat findBalls(Mat hsvImage, cvData data) {
 		// Find balls - green for now.
 		// Arbitrary colors coming soon.
-		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+		Mat colorMask = colorFilter(hsvImage, redLowerH, redUpperH);
 		
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -136,6 +144,14 @@ public class ImageProcessor {
 		Mat processedImage = new Mat();
 		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
 		
+		//Put the ball on the grid
+		double approxDiam = Math.sqrt(bestArea);
+		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
+		double distance = distanceConvert(approxDiam, ballDiameter);
+		double wallX = Math.cos(angularPos)*distance;
+		double wallY = Math.sin(angularPos)*distance;
+
+		
 		// How far off the center of the screen is the ball?
 		double offset;
 		if (bestBlob == -1) {
@@ -151,7 +167,13 @@ public class ImageProcessor {
 		
 		synchronized(data) {
 			data.offset = offset;
+			data.grid.set(wallX, wallY, 2);
 		}
+		double xx = bestBoundingRect.x;
+		double yy = bestBoundingRect.y;
+		double ww = bestBoundingRect.width;
+		double hh = bestBoundingRect.height;
+		Core.line(processedImage, new Point(xx,yy), new Point(xx + ww, yy+hh), RED);
 		return processedImage;
 	}
 	
@@ -244,7 +266,7 @@ public class ImageProcessor {
             }
     }
 	
-	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data){
+	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
 		double scale = 10; // Pixels / inch
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		//Filter image by color
@@ -271,7 +293,7 @@ public class ImageProcessor {
         Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
         MatOfPoint poly = new MatOfPoint(polygon.toArray());
         //get heights
-        SparseGrid grid = new SparseGrid(data.gridSize);
+        SparseGrid grid = data.grid;
 		Mat heights = new Mat();
         //Draw stuff
         List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
@@ -287,7 +309,7 @@ public class ImageProcessor {
             double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
             double wallX = Math.cos(angle)*distance;
             double wallY = Math.sin(angle)*distance;
-            grid.set(wallX, wallY, 1);        // 1 = generic blue wall.
+            grid.set(wallX, wallY, value);        // 1 = generic blue wall.
 		}
         
         List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
@@ -352,14 +374,14 @@ public class ImageProcessor {
         * (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
         */
         
-
+        
         
         double[] output = new double[] {0, 0, 0, 0, 0};
         if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
-                output[0] = wallDist;
+                output[0] = Math.abs(wallDist);
                 output[1] = closeSideAngle;
                 output[2] = farSideAngle;
-                output[3] = bearingAngle;
+                output[3] = bearingAngle>Math.PI? bearingAngle-Math.PI: bearingAngle;
                 output[4] = onRight? 1:-1;
         }
         
@@ -367,8 +389,18 @@ public class ImageProcessor {
                 data.wall = output;
                 data.grid = grid;
         }
-//        return processedImage;
-        processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
+        return processedImage;
+        
+	}
+	
+	static Mat drawGrid(Size size, cvData data){
+		double scale = 10;
+		SparseGrid grid = data.grid;
+		double wallDist, bearingAngle, onRight;
+		double[] wall = data.wall;
+		wallDist = wall[0]; bearingAngle = wall[3]; onRight = wall[4];
+		
+		Mat processedImage = Mat.zeros(size, CvType.CV_8UC3);
         Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
         
         while (keys.hasNext()) {
@@ -377,16 +409,26 @@ public class ImageProcessor {
                             coords.getValue() * grid.gridSize * scale);
             Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
                             (coords.getValue() + 1) * grid.gridSize * scale);
-            Core.rectangle(processedImage, tl, br, GREEN);
+            double value = grid.map.get(coords);
+            System.out.println((int)value);
+            switch((int)value){	
+            	case 1: Core.rectangle(processedImage, tl, br, BLUE); break;
+            	case 2: Core.rectangle(processedImage, tl, br, RED); break;
+            	case 3: Core.rectangle(processedImage, tl, br, GREEN); break;
+            	case 4: Core.rectangle(processedImage, tl, br, YELLOW); break;
+            }
 	    }
-        double theta = onRight? bearingAngle: Math.PI - bearingAngle;
+        double theta = onRight==1? bearingAngle: Math.PI - bearingAngle;
         theta = bearingAngle;
         //theta = closeSideAngle;
-        double d = wallDist;
-        Core.line(processedImage, new Point(hsvImage.width()/2,0), new Point(hsvImage.width()/2 + scale*d*Math.cos(theta), scale*d* Math.sin(theta)), RED);
-	    Core.line(processedImage, new Point(hsvImage.width()/2 + scale*wallDist*Math.cos(bearingAngle), scale*wallDist* Math.sin(bearingAngle)),new Point(hsvImage.width()/2 + scale*farDist*Math.cos(farSideAngle), scale*farDist* Math.sin(farSideAngle)), RED);
-        Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
-	    return processedImage;
+        double d = wallDist; 
+
+        Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 
+        for(int i =0; i<processedImage.rows(); i++){
+        	finalImage.push_back(processedImage.row(processedImage.rows()-i-1));
+        }
+        
+	    return finalImage;
 	}
 
 }

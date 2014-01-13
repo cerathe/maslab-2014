@@ -92,7 +92,7 @@ class cvHandle implements Runnable {
 		JLabel opencvPane = createWindow("OpenCV output", width, height);
 
 		// Main loop
-		Mat rawImage = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/walls.png", Highgui.CV_LOAD_IMAGE_COLOR); 
+		Mat rawImage = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/wallsandballswithscribbles.png", Highgui.CV_LOAD_IMAGE_COLOR); 
 ;
 		Mat processedImage = new Mat();
 		while (true) {
