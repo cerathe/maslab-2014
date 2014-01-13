@@ -103,6 +103,7 @@ public class ImageProcessor {
 		processedImage = findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
 		processedImage = findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
 		processedImage = findBalls(hsvImage, data);
+		data.grid.removeIslands();
 		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
 		data.offset = 3;
@@ -182,6 +183,9 @@ public class ImageProcessor {
 	}
 	
 	static Mat findWalls(Mat hsvImage, cvData data) {
+		/*
+		 * NOT USED RIGHT NOW.
+		 */
 		double scale = 10; // Pixels / inch
 		Mat processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
 		// Find all the wall stripes - TODO: make more general.

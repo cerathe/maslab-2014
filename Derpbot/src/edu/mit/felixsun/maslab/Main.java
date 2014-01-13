@@ -3,8 +3,14 @@ package edu.mit.felixsun.maslab;
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -43,11 +49,12 @@ class SparseGrid {
 	 * A sparse-matrix style 2D grid, that stores an integer at each point.
 	 */
 	public double gridSize; // Inches per grid square
-	public HashMap<java.util.Map.Entry<Integer, Integer>, Integer> map;
+	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> map;
+	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
 
 	public SparseGrid(double scale) {
 		gridSize = scale;
-		map = new HashMap();
+		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
 	}
 	
 	public void set(double x, double y, int value) {
@@ -62,6 +69,37 @@ class SparseGrid {
 		int yIndex = (int) (y / gridSize);
 		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
 		return map.get(coords);
+	}
+	
+	public void removeIslands() {
+		/*
+		 * Clears any isolated wall blocks.
+		 * (Wall blocks with nothing in the 8 positions around them.)
+		 */
+		for (Entry<Integer, Integer> pair : map.keySet()) {
+			int x = pair.getKey();
+			int y = pair.getValue();
+			boolean saveThis = false;
+			for (int deltaX = -1; deltaX < 2; deltaX++) {
+				for (int deltaY = -1; deltaY < 2; deltaY++) {
+					if (deltaX == 0 && deltaY == 0) {
+						continue;
+					}
+					if (wallNumbers.contains(
+							map.get(new SimpleEntry<Integer, Integer>(x+deltaX, y+deltaY))
+						)){
+						saveThis = true;
+						break;
+					}
+				}
+				if (saveThis) {
+					break;
+				}
+			}
+			if (!saveThis) {
+				map.remove(pair);
+			}
+		}
 	}
 
 }
