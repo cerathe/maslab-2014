@@ -75,7 +75,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (282.3 / pixelHeight) * objectHeight;
+		return (280.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
@@ -99,10 +99,12 @@ public class ImageProcessor {
 		// Run each sub-processor in succession.
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
-		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
-		processedImage = findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
-		processedImage = findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
-		processedImage = findBalls(hsvImage, data);
+
+		processedImage = findWallsPoly(topHalf, 0, 180, data, 1);
+//		 processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
+//		 findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
+//		 findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
+		 findBalls(hsvImage, data);
 		data.grid.removeIslands();
 		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
@@ -190,6 +192,9 @@ public class ImageProcessor {
 		Mat processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
 		// Find all the wall stripes - TODO: make more general.
 		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH);
+		Mat kernel = Mat.ones(new Size(3, 3), CvType.CV_8U);
+        Imgproc.erode(colorMask, colorMask, kernel, new Point(0, 0), 2);
+        Imgproc.dilate(colorMask, colorMask, kernel, new Point(0, 0), 2);
 		// Calculate heights.
 		Mat heights = new Mat();
 		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
@@ -282,7 +287,7 @@ public class ImageProcessor {
         Mat hierarchy = new Mat();
         Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         double biggestArea = 0;
-        int bestBlob = 0;
+        int bestBlob = -1;
         double thisArea = 0;
         for(int i=0; i<contours.size(); i++){
                 thisArea = Imgproc.boundingRect(contours.get(i)).area();
@@ -290,6 +295,10 @@ public class ImageProcessor {
                         bestBlob = i;
                         biggestArea = thisArea; 
                 }
+        }
+        
+        if (bestBlob == -1) {
+        	return processedImage;
         }
         //Approximate the blob by a coarse polygon
         MatOfPoint2f polygon = new MatOfPoint2f();

@@ -115,15 +115,16 @@ class cvHandle implements Runnable {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
 		// Setup the camera
-//		VideoCapture camera = new VideoCapture();
-//		camera.open(1);
+		VideoCapture camera = new VideoCapture();
+		camera.open(1);
 		
 		// Create GUI windows to display camera output and OpenCV output
-//		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
-//		int height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
-		Mat rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png"); 
-		int width = rawImage.width();
-		int height = rawImage.height();
+		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
+		int height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
+		Mat rawImage = new Mat();
+//		Mat rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png"); 
+//		int width = rawImage.width();
+//		int height = rawImage.height();
 		JLabel cameraPane = createWindow("Camera output", width, height);
 		JLabel opencvPane = createWindow("OpenCV output", width, height);
 
@@ -136,8 +137,8 @@ class cvHandle implements Runnable {
 		while (true) {
 			
 			// Wait until the camera has a new frame
-//			camera.grab();
-//			camera.retrieve(rawImage);
+			camera.grab();
+			camera.retrieve(rawImage);
 			
 			// Process the image however you like
 			cvData tempData = ImageProcessor.process(rawImage);
