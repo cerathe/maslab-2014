@@ -23,7 +23,7 @@ public class ImageProcessor {
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
-	static int blueUpperH = 140;
+	static int blueUpperH = 120;
 	static int yellowLowerH = 25;
 	static int yellowUpperH = 35;
 	static int lowerS = 100;
@@ -37,12 +37,11 @@ public class ImageProcessor {
     
     static double POLYAPPROXEPSILON = 3;
     static double MIN_GOOD_AREA = 200;
-    
-    static double VIEWANGLE = Math.PI/2;
-	
+    	
 	// Camera and world parameters.  All length units in inches.
 	static double wallStripeHeight = 2;
 	static double ballDiameter = 2;
+    static double VIEWANGLE = 90 * Math.PI / 180;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -100,11 +99,11 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-		processedImage = findWallsPoly(topHalf, 0, 180, data, 1);
+		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 //		 processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 //		 findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
 //		 findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
-		 findBalls(hsvImage, data);
+		findBalls(hsvImage, data);
 		data.grid.removeIslands();
 		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
@@ -284,103 +283,117 @@ public class ImageProcessor {
         colorMask = colorFilter(hsvImage, lowerHue, upperHue);
         //Find the largest connected component
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        List<MatOfPoint> goodContours = new ArrayList<MatOfPoint>();
         Mat hierarchy = new Mat();
         Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         double biggestArea = 0;
         int bestBlob = -1;
         double thisArea = 0;
-        for(int i=0; i<contours.size(); i++){
-                thisArea = Imgproc.boundingRect(contours.get(i)).area();
-                if(thisArea >biggestArea){
-                        bestBlob = i;
-                        biggestArea = thisArea; 
-                }
-        }
+        // TODO: Figure out which blobs are walls.
+//        for(int i=0; i<contours.size(); i++){
+//        	if (looksLikeWall(contours.get(i))) {
+//        		
+//        	}
+//                thisArea = Imgproc.boundingRect(contours.get(i)).area();
+//                Rect bounding = Imgproc.boundingRect(contours.get(i));
+//                
+//        }
+        goodContours = contours;
         
-        if (bestBlob == -1) {
+        
+        if (goodContours.size() == 0) {
         	return processedImage;
         }
-        //Approximate the blob by a coarse polygon
-        MatOfPoint2f polygon = new MatOfPoint2f();
-        MatOfPoint2f strip = new MatOfPoint2f(contours.get(bestBlob).toArray());
-        Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
-        MatOfPoint poly = new MatOfPoint(polygon.toArray());
-        //get heights
         SparseGrid grid = data.grid;
-		Mat heights = new Mat();
-        //Draw stuff
-        List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
-        approxWall.add(poly);
-        Imgproc.drawContours(processedImage,approxWall,0, BLUE, -1);
-		Core.reduce(processedImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-		for (int i = 0; i < heights.width(); i++) {
-            double thisHeight = heights.get(0, i)[0] / 255;
-            if (thisHeight < 2) {
-                    continue;
-            }
-            double distance = distanceConvert(thisHeight, wallStripeHeight);
-            double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
-            double wallX = Math.cos(angle)*distance;
-            double wallY = Math.sin(angle)*distance;
-            grid.set(wallX, wallY, value);        // 1 = generic blue wall.
-		}
+        for (int i=0; i<goodContours.size(); i++) {
+	        //Approximate the blob by a coarse polygon
+	        MatOfPoint2f polygon = new MatOfPoint2f();
+	        MatOfPoint2f strip = new MatOfPoint2f(goodContours.get(i).toArray());
+	        Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
+	        MatOfPoint poly = new MatOfPoint(polygon.toArray());
+	        //Draw polygon to new image.
+	        // To save space and time, make the polygon image smaller than the whole image.
+	        Rect bounding = Imgproc.boundingRect(poly);
+        	Mat polygonImage = Mat.zeros(new Size(bounding.width, bounding.height), processedImage.type());
+        	for (int pointX = 0; pointX < poly.height(); pointX++) {
+    			poly.put(pointX, 0, new double[] {poly.get(pointX, 0)[0] - bounding.x, poly.get(pointX, 0)[1] - bounding.y});
+        	}
+	        List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
+	        approxWall.add(poly);
+	        Imgproc.drawContours(polygonImage, approxWall, 0, BLUE, -1);
         
-        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
-        
-        //Get the left and right heights of the polygon.
-        //If the blob is well-behaved (which it should be during MASLAB),
-        // these correspond to the leftmost and rightmost heights.
-        //Left height := vertical distance between the two leftmost vertices.
-        List<Point> polylist = poly.toList();
-        int[] pts = leftMostTwo(polylist);
-        Point pt1 = polylist.get(pts[0]);
-        double leftHeight = heights.get(0, 1)[0];
-        //Right height := vertical distance between the two rightmost vertices.
-        int[] pts2 = rightMostTwo(polylist);
-        Point pt3 = polylist.get(pts2[0]);
-        double rightHeight = heights.get(0, heights.width()-2)[0];
-        
-        boolean onRight = false;
-        double bigHeight = 0;
-        if(rightHeight>leftHeight){
-                onRight = true;
-                bigHeight = rightHeight/255;
-        }else{
-                bigHeight = leftHeight/255;
-        }
-        //Get the other two points of the closest wall
-        Point pt5 = pt1.clone();
-        Point pt6 = pt1.clone();
-        int[] closestWall = new int[2];
-        double smallHeight;
-        if(onRight){
-                closestWall = pts2;
-                pt5 = polylist.get((closestWall[0]+1)%polylist.size());
-                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
-        }
-        else{
-                closestWall = pts;
-                pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
-                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
+	        // Figure out heights across the polygon.
+	        Mat heights = new Mat();
+			Core.reduce(polygonImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
+			for (int j = 0; j < heights.width(); j++) {
+	            double thisHeight = heights.get(0, j)[0] / 255;
+	            if (thisHeight < 2) {
+	                    continue;
+	            }
+	            double distance = distanceConvert(thisHeight, wallStripeHeight);
+	            double angle = angularPosition(bounding.x + j, processedImage.width());
+	            double wallX = Math.cos(angle)*distance;
+	            double wallY = Math.sin(angle)*distance;
+	            grid.set(wallX, wallY, value);
+			}
         }
         
-        //wallWidth is how wide the wall is on the image plane. 
-        double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
-        double closeSideAngle = angularPosition(polylist.get(closestWall[0]).x, hsvImage.width());
-        double farSideAngle = angularPosition(pt5.x, hsvImage.width());
-        Core.line(processedImage, polylist.get(closestWall[0]), new Point(polylist.get(closestWall[0]).x, polylist.get(closestWall[0]).y + bigHeight), RED );
-        Core.line(processedImage, pt5, new Point(pt5.x, pt5.y+smallHeight), GREEN);
-        
-        //get angle between two sides of wall
-        double wallAngle = Math.abs(closeSideAngle - farSideAngle);
-        //distance to each side of wall in inches
-        double closeDist =  distanceConvert(bigHeight, wallStripeHeight);
-        double farDist = distanceConvert(smallHeight, wallStripeHeight);
-        //Length of wall: law of cosines
-        double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
-        //Direction of altitude to wall by law of sines
-        double bearingAngle = Math.PI/2 + Math.asin(farDist*Math.sin(wallAngle)/wallLength) + closeSideAngle;
-        double wallDist = closeDist*Math.cos(bearingAngle - closeSideAngle);
+//        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
+//        
+//        //Get the left and right heights of the polygon.
+//        //If the blob is well-behaved (which it should be during MASLAB),
+//        // these correspond to the leftmost and rightmost heights.
+//        //Left height := vertical distance between the two leftmost vertices.
+//        List<Point> polylist = poly.toList();
+//        int[] pts = leftMostTwo(polylist);
+//        Point pt1 = polylist.get(pts[0]);
+//        double leftHeight = heights.get(0, 1)[0];
+//        //Right height := vertical distance between the two rightmost vertices.
+//        int[] pts2 = rightMostTwo(polylist);
+//        Point pt3 = polylist.get(pts2[0]);
+//        double rightHeight = heights.get(0, heights.width()-2)[0];
+//        
+//        boolean onRight = false;
+//        double bigHeight = 0;
+//        if(rightHeight>leftHeight){
+//                onRight = true;
+//                bigHeight = rightHeight/255;
+//        }else{
+//                bigHeight = leftHeight/255;
+//        }
+//        //Get the other two points of the closest wall
+//        Point pt5 = pt1.clone();
+//        Point pt6 = pt1.clone();
+//        int[] closestWall = new int[2];
+//        double smallHeight;
+//        if(onRight){
+//                closestWall = pts2;
+//                pt5 = polylist.get((closestWall[0]+1)%polylist.size());
+//                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
+//        }
+//        else{
+//                closestWall = pts;
+//                pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
+//                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
+//        }
+//        
+//        //wallWidth is how wide the wall is on the image plane. 
+//        double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
+//        double closeSideAngle = angularPosition(polylist.get(closestWall[0]).x, hsvImage.width());
+//        double farSideAngle = angularPosition(pt5.x, hsvImage.width());
+//        Core.line(processedImage, polylist.get(closestWall[0]), new Point(polylist.get(closestWall[0]).x, polylist.get(closestWall[0]).y + bigHeight), RED );
+//        Core.line(processedImage, pt5, new Point(pt5.x, pt5.y+smallHeight), GREEN);
+//        
+//        //get angle between two sides of wall
+//        double wallAngle = Math.abs(closeSideAngle - farSideAngle);
+//        //distance to each side of wall in inches
+//        double closeDist =  distanceConvert(bigHeight, wallStripeHeight);
+//        double farDist = distanceConvert(smallHeight, wallStripeHeight);
+//        //Length of wall: law of cosines
+//        double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
+//        //Direction of altitude to wall by law of sines
+//        double bearingAngle = Math.PI/2 + Math.asin(farDist*Math.sin(wallAngle)/wallLength) + closeSideAngle;
+//        double wallDist = closeDist*Math.cos(bearingAngle - closeSideAngle);
 
         /* data.wall is: 
         * (0,0,0,0,0) if no wall
@@ -390,13 +403,13 @@ public class ImageProcessor {
         
         
         double[] output = new double[] {0, 0, 0, 0, 0};
-        if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
-                output[0] = Math.abs(wallDist);
-                output[1] = closeSideAngle;
-                output[2] = farSideAngle;
-                output[3] = bearingAngle>Math.PI? bearingAngle-Math.PI: bearingAngle;
-                output[4] = onRight? 1:-1;
-        }
+//        if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
+//                output[0] = Math.abs(wallDist);
+//                output[1] = closeSideAngle;
+//                output[2] = farSideAngle;
+//                output[3] = bearingAngle>Math.PI? bearingAngle-Math.PI: bearingAngle;
+//                output[4] = onRight? 1:-1;
+//        }
         
         data.wall = output;
         data.grid = grid;
