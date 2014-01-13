@@ -85,22 +85,28 @@ public class ImageProcessor {
 	// Input: an image from the camera, an empty mat to store an output image (for
 	// visual debugging only).
 	// Output: A cvData structure, containing data that the main controller wants to know.
-	public static Mat process(Mat rawImage, cvData data) {
+	public static cvData process(Mat rawImage) {
+		cvData data = new cvData();
 		Mat processedImage = new Mat();
 		// Convert to HSV
 		Mat hsvImage= new Mat();
 		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
+		// We will only see walls on the top half of our image.
+		// Actually, our sample images don't reflect that right now.
+		Rect roi = new Rect(0, 0, hsvImage.width(), hsvImage.height());	// Should be height/2
+		Mat topHalf = new Mat(hsvImage, roi);
 		
 		// Run each sub-processor in succession.
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
-		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
-		processedImage = findWallsPoly(hsvImage, greenLowerH, greenUpperH, data, 3);
-		processedImage = findWallsPoly(hsvImage, yellowLowerH, yellowUpperH, data, 4);
+		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
+		processedImage = findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
+		processedImage = findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
 		processedImage = findBalls(hsvImage, data);
 		processedImage = drawGrid(hsvImage.size(), data);
-		
-		return processedImage;
+		data.processedImage = processedImage;
+		data.offset = 3;
+		return data;
 	}
 
 	
@@ -165,10 +171,8 @@ public class ImageProcessor {
 			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - hsvImage.width() / 2) / hsvImage.width();
 		}
 		
-		synchronized(data) {
-			data.offset = offset;
-			data.grid.set(wallX, wallY, 2);
-		}
+		data.offset = offset;
+		data.grid.set(wallX, wallY, 2);
 		double xx = bestBoundingRect.x;
 		double yy = bestBoundingRect.y;
 		double ww = bestBoundingRect.width;
@@ -200,9 +204,7 @@ public class ImageProcessor {
 		}
 		
 		// Shove new map into data
-		synchronized(data) {
-			data.grid = grid;
-		}
+		data.grid = grid;
 		
 		// Draw the grid we just made.
 		// Note: potential concurrency problems exist here, since the grid structure is
@@ -267,7 +269,6 @@ public class ImageProcessor {
     }
 	
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
-		double scale = 10; // Pixels / inch
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		//Filter image by color
         Mat colorMask = new Mat();
@@ -286,7 +287,6 @@ public class ImageProcessor {
                         biggestArea = thisArea; 
                 }
         }
-        double bestArea = Imgproc.contourArea(contours.get(bestBlob));
         //Approximate the blob by a coarse polygon
         MatOfPoint2f polygon = new MatOfPoint2f();
         MatOfPoint2f strip = new MatOfPoint2f(contours.get(bestBlob).toArray());
@@ -385,10 +385,8 @@ public class ImageProcessor {
                 output[4] = onRight? 1:-1;
         }
         
-        synchronized(data) {
-                data.wall = output;
-                data.grid = grid;
-        }
+        data.wall = output;
+        data.grid = grid;
         return processedImage;
         
 	}
@@ -410,7 +408,6 @@ public class ImageProcessor {
             Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
                             (coords.getValue() + 1) * grid.gridSize * scale);
             double value = grid.map.get(coords);
-            System.out.println((int)value);
             switch((int)value){	
             	case 1: Core.rectangle(processedImage, tl, br, BLUE); break;
             	case 2: Core.rectangle(processedImage, tl, br, RED); break;

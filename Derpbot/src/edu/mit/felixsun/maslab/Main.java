@@ -30,6 +30,7 @@ class cvData {
 	public SparseGrid grid;
 	public double gridSize = 0.5;
 	public double[] wall;
+	public Mat processedImage;
 	public cvData() {
 		offset = -2;
 		grid = new SparseGrid(gridSize);
@@ -69,12 +70,9 @@ class cvHandle implements Runnable {
 	/*
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
-	cvData data;
+	public cvData data = new cvData();
 	Thread t;
-	public cvHandle(cvData initData) {
-		data = initData;
-	}
-	
+
 	public void run(){
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
@@ -85,16 +83,18 @@ class cvHandle implements Runnable {
 		// Create GUI windows to display camera output and OpenCV output
 //		int width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
 //		int height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
-		Mat img = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/walls.png", Highgui.CV_LOAD_IMAGE_COLOR); 
-		int width = img.width();
-		int height = img.height();
+		Mat rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png"); 
+		int width = rawImage.width();
+		int height = rawImage.height();
 		JLabel cameraPane = createWindow("Camera output", width, height);
 		JLabel opencvPane = createWindow("OpenCV output", width, height);
 
-		// Main loop
-		Mat rawImage = Highgui.imread("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/wallsandballswithscribbles.png", Highgui.CV_LOAD_IMAGE_COLOR); 
-;
+		// Main loop 
 		Mat processedImage = new Mat();
+		// Vision timing.  How many fps do we get?
+		long startTime = System.nanoTime();
+		int frames = 0;
+		
 		while (true) {
 			
 			// Wait until the camera has a new frame
@@ -102,13 +102,25 @@ class cvHandle implements Runnable {
 //			camera.retrieve(rawImage);
 			
 			// Process the image however you like
-			processedImage = ImageProcessor.process(rawImage, data);
+			cvData tempData = ImageProcessor.process(rawImage);
+			synchronized (data) {
+				data = tempData;
+			}
+			processedImage = tempData.processedImage;
+			
 			
 			// Update the GUI windows
 			updateWindow(cameraPane, rawImage);
 			updateWindow(opencvPane, processedImage);
 			// Manually garbage collect, because opencv has memory issues :(
 			System.gc();
+			frames++;
+			// Fps-counting stuff.  Do frames every second.
+			if (System.nanoTime() - startTime > 1000000000) {
+				System.out.println(frames);
+				startTime = System.nanoTime();
+				frames = 0;
+			}
 			
 		}
 	}
@@ -147,8 +159,7 @@ public class Main {
     
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
-		cvData data = new cvData();
-		cvHandle handle = new cvHandle(data); // Run the cv stuff.
+		cvHandle handle = new cvHandle(); // Run the cv stuff.
 		Thread cvThread = new Thread(handle);
 		cvThread.start();
 
@@ -177,10 +188,11 @@ public class Main {
             
             int motorA = 0;
             int motorB = 0;
-            synchronized(data){
-                    offset = data.offset;
-                    wall = data.wall;
+            synchronized(handle.data){
+                    offset = handle.data.offset;
+                    wall = handle.data.wall;
             }
+            System.out.println(offset);
             if (offset < -1){
                     // We don't see color.
                     if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
