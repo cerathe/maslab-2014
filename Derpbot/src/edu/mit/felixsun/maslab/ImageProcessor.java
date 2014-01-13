@@ -74,6 +74,10 @@ public class ImageProcessor {
 		return (282.3 / pixelHeight) * objectHeight;
 	}
 
+	static double angularPosition(double xpos, double windowWidth){
+		return (windowWidth - xpos)/windowWidth *VIEWANGLE + (Math.PI - VIEWANGLE)/2; 
+		
+	}
 	// Input: an image from the camera, an empty mat to store an output image (for
 	// visual debugging only).
 	// Output: A cvData structure, containing data that the main controller wants to know.
@@ -276,12 +280,10 @@ public class ImageProcessor {
 		Core.reduce(processedImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
 		for (int i = 0; i < heights.width(); i++) {
             double thisHeight = heights.get(0, i)[0] / 255;
-            System.out.println(thisHeight);
             if (thisHeight < 2) {
                     continue;
             }
             double distance = distanceConvert(thisHeight, wallStripeHeight);
-            System.out.println(distance);
             double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
             double wallX = Math.cos(angle)*distance;
             double wallY = Math.sin(angle)*distance;
@@ -297,53 +299,54 @@ public class ImageProcessor {
         List<Point> polylist = poly.toList();
         int[] pts = leftMostTwo(polylist);
         Point pt1 = polylist.get(pts[0]);
-        Point pt2 = polylist.get(pts[1]);
-        double leftHeight = Math.abs(pt1.y-pt2.y);
+        double leftHeight = heights.get(0, 1)[0];
         //Right height := vertical distance between the two rightmost vertices.
         int[] pts2 = rightMostTwo(polylist);
         Point pt3 = polylist.get(pts2[0]);
-        Point pt4 = polylist.get(pts2[1]);
-        double rightHeight = Math.abs(pt3.y-pt4.y);
+        double rightHeight = heights.get(0, heights.width()-2)[0];
         
         boolean onRight = false;
         double bigHeight = 0;
         if(rightHeight>leftHeight){
                 onRight = true;
-                bigHeight = rightHeight;
+                bigHeight = rightHeight/255;
         }else{
-                bigHeight = leftHeight;
+                bigHeight = leftHeight/255;
         }
         //Get the other two points of the closest wall
         Point pt5 = pt1.clone();
         Point pt6 = pt1.clone();
         int[] closestWall = new int[2];
+        double smallHeight;
         if(onRight){
                 closestWall = pts2;
                 pt5 = polylist.get((closestWall[0]+1)%polylist.size());
-                pt6 = polylist.get((closestWall[1]-1+polylist.size())%polylist.size());
+                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
         }
         else{
                 closestWall = pts;
                 pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
-                pt6 = polylist.get((closestWall[1]+1)%polylist.size());
+                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
         }
-
-        double smallHeight = pt5.y-pt6.y;
         
         //wallWidth is how wide the wall is on the image plane. 
         double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
-        double closeSideAngle = VIEWANGLE*(1 - polylist.get(closestWall[0]).x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
-        double farSideAngle = VIEWANGLE *(1- pt5.x/hsvImage.width()) + (Math.PI - VIEWANGLE)/2;
+        double closeSideAngle = angularPosition(polylist.get(closestWall[0]).x, hsvImage.width());
+        double farSideAngle = angularPosition(pt5.x, hsvImage.width());
+        Core.line(processedImage, polylist.get(closestWall[0]), new Point(polylist.get(closestWall[0]).x, polylist.get(closestWall[0]).y + bigHeight), RED );
+        Core.line(processedImage, pt5, new Point(pt5.x, pt5.y+smallHeight), GREEN);
+        
         //get angle between two sides of wall
-        double wallAngle = VIEWANGLE * wallWidth/hsvImage.width();
+        double wallAngle = Math.abs(closeSideAngle - farSideAngle);
         //distance to each side of wall in inches
         double closeDist =  distanceConvert(bigHeight, wallStripeHeight);
         double farDist = distanceConvert(smallHeight, wallStripeHeight);
         //Length of wall: law of cosines
         double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
         //Direction of altitude to wall by law of sines
-        double bearingAngle = Math.acos(farDist*Math.sin(wallAngle)/wallLength) + (Math.PI - VIEWANGLE)/2;
-        double wallDist = closeDist*Math.cos(closeSideAngle);
+        double bearingAngle = Math.PI/2 + Math.asin(farDist*Math.sin(wallAngle)/wallLength) + closeSideAngle;
+        double wallDist = closeDist*Math.cos(bearingAngle - closeSideAngle);
+
         /* data.wall is: 
         * (0,0,0,0,0) if no wall
         * (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
@@ -376,7 +379,13 @@ public class ImageProcessor {
                             (coords.getValue() + 1) * grid.gridSize * scale);
             Core.rectangle(processedImage, tl, br, GREEN);
 	    }
-	    Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
+        double theta = onRight? bearingAngle: Math.PI - bearingAngle;
+        theta = bearingAngle;
+        //theta = closeSideAngle;
+        double d = wallDist;
+        Core.line(processedImage, new Point(hsvImage.width()/2,0), new Point(hsvImage.width()/2 + scale*d*Math.cos(theta), scale*d* Math.sin(theta)), RED);
+	    Core.line(processedImage, new Point(hsvImage.width()/2 + scale*wallDist*Math.cos(bearingAngle), scale*wallDist* Math.sin(bearingAngle)),new Point(hsvImage.width()/2 + scale*farDist*Math.cos(farSideAngle), scale*farDist* Math.sin(farSideAngle)), RED);
+        Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
 	    return processedImage;
 	}
 

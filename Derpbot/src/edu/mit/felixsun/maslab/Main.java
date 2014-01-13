@@ -28,7 +28,7 @@ class cvData {
 	 */
 	public double offset;
 	public SparseGrid grid;
-	public double gridSize = 2;
+	public double gridSize = 0.5;
 	public double[] wall;
 	public cvData() {
 		offset = -2;
@@ -62,6 +62,7 @@ class SparseGrid {
 		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
 		return map.get(coords);
 	}
+
 }
 
 class cvHandle implements Runnable {
@@ -195,8 +196,10 @@ public class Main {
                             if(wallDist>TOOCLOSE){
                             	motorA = (int) SPEED;
                             	motorB = (int) SPEED;
+                            	System.out.println(wallDist);
                             }
                             else{
+                            	System.out.println("TOOCLOSE");
                             	motorA = (int) -onRight* SPEED;
                             	motorB = (int) onRight * SPEED;
                             }
