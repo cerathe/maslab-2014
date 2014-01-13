@@ -12,6 +12,7 @@ import org.opencv.core.Point;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 
@@ -21,21 +22,28 @@ public class ImageProcessor {
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
-	static int blueUpperH = 140;
-	static int lowerS = 100;
-	static int lowerV = 40;
+	static int blueUpperH = 120;
+	static int defaultLowerS = 100;
+	static int defaultLowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
 	
 	// Camera and world parameters.  All length units in inches.
-	static double wallStripeHeight = 11;
+	static double wallStripeHeight = 2;
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	
-	static Mat colorFilter(Mat input, int lowerH, int upperH){
+	static Mat colorFilter(Mat input, int lowerH, int upperH) {
+		/*
+		 * Call colorFilter with default arguments.
+		 */
+		return colorFilter(input, lowerH, upperH, defaultLowerS, defaultLowerV);
+	}
+	
+	static Mat colorFilter(Mat input, int lowerH, int upperH, int lowerS, int lowerV){
 		/*
 		 * Finds all pixels of input image (in HSV form) that have hue between 
 		 * lowerH and upperH.  Is smart about H wrap-around: for example, if
@@ -145,7 +153,10 @@ public class ImageProcessor {
 		double scale = 10; // Pixels / inch
 		Mat processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
 		// Find all the wall stripes - TODO: make more general.
-		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH);
+		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH, 120, 80);
+		Mat kernel = Mat.ones(new Size(3, 3), CvType.CV_8U);
+		Imgproc.erode(colorMask, colorMask, kernel, new Point(0, 0), 2);
+		Imgproc.dilate(colorMask, colorMask, kernel, new Point(0, 0), 2);
 		// Calculate heights.
 		Mat heights = new Mat();
 		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);

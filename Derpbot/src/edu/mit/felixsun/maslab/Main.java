@@ -27,7 +27,7 @@ class cvData {
 	 */
 	public double offset;
 	public SparseGrid grid;
-	public double gridSize = 2;
+	public double gridSize = 0.5;
 	public cvData() {
 		offset = -2;
 		grid = new SparseGrid(gridSize);
@@ -90,8 +90,9 @@ class cvHandle implements Runnable {
 		while (true) {
 			
 			// Wait until the camera has a new frame
-			camera.grab();
-			camera.retrieve(rawImage);
+//			camera.grab();
+//			camera.retrieve(rawImage);
+			rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png");
 			
 			// Process the image however you like
 			processedImage = ImageProcessor.process(rawImage, data);
@@ -132,7 +133,6 @@ class cvHandle implements Runnable {
 
 public class Main {
 	public static int SPEED = 20;
-	public static double I_GAIN = 0;
 
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
@@ -153,11 +153,10 @@ public class Main {
 		}
 
 		while (true) {
-			double offset;
-			double diff;
-			double integral = 0;
 			int motorA = 0;
 			int motorB = 0;
+			double offset;
+			double diff;
 			synchronized(data){
 				offset = data.offset;
 			}
@@ -167,8 +166,7 @@ public class Main {
 				motorB = 0;
 			} else {
 				// Steer proportional to where the color is.
-				integral += offset;
-				diff = SPEED*offset + I_GAIN*integral;
+				diff = SPEED*offset;
 				motorA = (int) (SPEED - diff);
 				motorB = (int) (SPEED + diff);
 			}
