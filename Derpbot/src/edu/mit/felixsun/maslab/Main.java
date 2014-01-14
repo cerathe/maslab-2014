@@ -72,6 +72,13 @@ class SparseGrid {
 		return map.get(coords);
 	}
 	
+	public boolean filled(double x, double y) {
+		int xIndex = (int) (x / gridSize);
+		int yIndex = (int) (y / gridSize);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
+		return map.containsKey(coords);
+	}
+	
 	public void removeIslands() {
 		/*
 		 * Clears any isolated wall blocks.
@@ -94,9 +101,6 @@ class SparseGrid {
 						saveThis = true;
 						break;
 					}
-				}
-				if(!(Math.atan((double)y/x)<-0.22*Math.PI || Math.atan((double)y/x)>0.28*Math.PI)){
-					saveThis = false;
 				}
 				if (saveThis) {
 					break;
@@ -122,7 +126,8 @@ class cvHandle implements Runnable {
 	Thread t;
 
 	public void run(){
-		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+		// String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;

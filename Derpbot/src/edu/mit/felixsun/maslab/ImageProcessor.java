@@ -1,9 +1,12 @@
 package edu.mit.felixsun.maslab;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -296,14 +299,15 @@ public class ImageProcessor {
     }
     
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
+		int REGRESSION_SIZE = 6;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		
 		//Filter image by color
         Mat colorMask = new Mat();
         colorMask = colorFilter(hsvImage, lowerHue, upperHue);
-        //dilate and erode
-        Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
-        Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+        //dilate and erode - These don't appear to help right now, so let's not do them.
+        // Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+        // Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
 
         
         //Find the largest connected component
@@ -331,14 +335,8 @@ public class ImageProcessor {
         }
         SparseGrid grid = data.grid;
         
-        int leftMostContour = 0;
-        double leftX = hsvImage.width();
-        Mat leftHeights = new Mat();
-        int rightMostContour = 0;
-        double rightX = 0;
-        double thisBound = 0;
-        Mat rightHeights = new Mat();
-        
+        SortedMap<Double, Point> distToPointsLeft = new TreeMap<Double, Point>();
+        SortedMap<Double, Point> distToPointsRight = new TreeMap<Double, Point>();
         for (int i=0; i<goodContours.size(); i++) {
 	        //Approximate the blob by a coarse polygon
 	        MatOfPoint2f polygon = new MatOfPoint2f();
@@ -363,17 +361,6 @@ public class ImageProcessor {
 	        */
 	        Mat heights = new Mat();
 			Core.reduce(polygonImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-	        if(bounding.x<leftX && bounding.area()>MIN_GOOD_AREA){
-	        	leftMostContour = i;
-	        	leftX = bounding.x;
-	        	leftHeights = heights;
-	        }
-	        if(bounding.x + bounding.width>rightX + thisBound && bounding.area()>MIN_GOOD_AREA){
-	        	rightMostContour = i;
-	        	rightX = bounding.x; 
-	        	thisBound = bounding.width;
-	        	rightHeights = heights;
-	        }
 			for (int j = 0; j < heights.width(); j++) {
 				
 	            double thisHeight = heights.get(0, j)[0] / 255;
@@ -385,113 +372,56 @@ public class ImageProcessor {
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
 	            double wallX = Math.cos(angle)*distance;
 	            double wallY = Math.sin(angle)*distance;
+	            Point thisPt = new Point(wallX, wallY);
+	            if (angle < Math.PI / 2) {
+	            	distToPointsRight.put(distance, thisPt);
+	            } else {
+	            	distToPointsLeft.put(distance, thisPt);
+	            }
 	            grid.set(wallX, wallY, value);
 			}
-			
         }
-        // Get the leftmost three points and the rightmost 3 points.
-        double[] leftWallX = new double[20];
-        double[] rightWallX = new double[20];
-        double[] leftWallY = new double[20];
-        double[] rightWallY = new double[20];
-        int counter = 0;
-        for(int i = 0; i<leftHeights.width(); i++){
-        	if(leftHeights.get(0, i)[0]/255 > 2){
-        		double theta = angularPosition(leftX + i, hsvImage.width());
-        		double thisHeight = leftHeights.get(0, i)[0]/255;
-        		double r = distanceConvert(thisHeight, wallStripeHeight);
-        		leftWallX[counter] = r*Math.cos(theta);
-        		leftWallY[counter] = r*Math.sin(theta);
-        		counter ++;
-        	}
-        	if(counter>=20){
-        		break;
-        	}
+        // Get the leftmost n points and the rightmost n points.
+        double[] leftWallX = new double[REGRESSION_SIZE];
+        double[] rightWallX = new double[REGRESSION_SIZE];
+        double[] leftWallY = new double[REGRESSION_SIZE];
+        double[] rightWallY = new double[REGRESSION_SIZE];
+        
+        for (int i = 0; i < REGRESSION_SIZE; i++) {
+        	double leftDist = distToPointsLeft.firstKey();
+        	double rightDist = distToPointsRight.firstKey();
+        	Point leftPt = distToPointsLeft.get(leftDist);
+        	Point rightPt = distToPointsRight.get(rightDist);
+        	distToPointsLeft.remove(leftDist);
+        	distToPointsRight.remove(rightDist);
+        	leftWallX[i] = leftPt.x;
+        	leftWallY[i] = leftPt.y;
+        	rightWallX[i] = rightPt.x;
+        	rightWallY[i] = rightPt.y;
         }
-        counter = 0;
-        for(int i = rightHeights.width()-1; i > -1; i--){
-        	if(rightHeights.get(0, i)[0]/255 > 2){
-        		double theta = angularPosition(rightX + i, hsvImage.width());
-        		double thisHeight = rightHeights.get(0, i)[0]/255;
-        		double r = distanceConvert(thisHeight, wallStripeHeight);
-        		rightWallX[counter] = r*Math.cos(theta);
-        		rightWallY[counter] = r*Math.sin(theta);
-
-        		counter ++;
-        	}
-        	if(counter>=20){
-        		break;
-        	}
-        }
+        
         //linear regression
         double[] leftCoeffs = linReg(leftWallX, leftWallY);
         double[] rightCoeffs = linReg(rightWallX, rightWallY);
         double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
-        double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));;
-        System.out.println(rdist);
-//        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
-//        
-//        //Get the left and right heights of the polygon.
-//        //If the blob is well-behaved (which it should be during MASLAB),
-//        // these correspond to the leftmost and rightmost heights.
-//        //Left height := vertical distance between the two leftmost vertices.
-//        List<Point> polylist = poly.toList();
-//        int[] pts = leftMostTwo(polylist);
-//        Point pt1 = polylist.get(pts[0]);
-//        double leftHeight = heights.get(0, 1)[0];
-//        //Right height := vertical distance between the two rightmost vertices.
-//        int[] pts2 = rightMostTwo(polylist);
-//        Point pt3 = polylist.get(pts2[0]);
-//        double rightHeight = heights.get(0, heights.width()-2)[0];
-//        
-//        boolean onRight = false;
-//        double bigHeight = 0;
-//        if(rightHeight>leftHeight){
-//                onRight = true;
-//                bigHeight = rightHeight/255;
-//        }else{
-//                bigHeight = leftHeight/255;
-//        }
-//        //Get the other two points of the closest wall
-//        Point pt5 = pt1.clone();
-//        Point pt6 = pt1.clone();
-//        int[] closestWall = new int[2];
-//        double smallHeight;
-//        if(onRight){
-//                closestWall = pts2;
-//                pt5 = polylist.get((closestWall[0]+1)%polylist.size());
-//                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
-//        }
-//        else{
-//                closestWall = pts;
-//                pt5 = polylist.get((closestWall[0]-1+polylist.size())%polylist.size());
-//                smallHeight = heights.get(0,(int) pt5.x)[0]/255;
-//        }
-//        
-//        //wallWidth is how wide the wall is on the image plane. 
-//        double wallWidth = Math.abs(polylist.get(closestWall[0]).x - pt5.x);
-//        double closeSideAngle = angularPosition(polylist.get(closestWall[0]).x, hsvImage.width());
-//        double farSideAngle = angularPosition(pt5.x, hsvImage.width());
-//        Core.line(processedImage, polylist.get(closestWall[0]), new Point(polylist.get(closestWall[0]).x, polylist.get(closestWall[0]).y + bigHeight), RED );
-//        Core.line(processedImage, pt5, new Point(pt5.x, pt5.y+smallHeight), GREEN);
-//        
-//        //get angle between two sides of wall
-//        double wallAngle = Math.abs(closeSideAngle - farSideAngle);
-//        //distance to each side of wall in inches
-//        double closeDist =  distanceConvert(bigHeight, wallStripeHeight);
-//        double farDist = distanceConvert(smallHeight, wallStripeHeight);
-//        //Length of wall: law of cosines
-//        double wallLength = Math.sqrt(Math.pow(closeDist,2)+ Math.pow(farDist,2) - 2*farDist*closeDist*Math.cos(wallAngle));
-//        //Direction of altitude to wall by law of sines
-//        double bearingAngle = Math.PI/2 + Math.asin(farDist*Math.sin(wallAngle)/wallLength) + closeSideAngle;
-//        double wallDist = closeDist*Math.cos(bearingAngle - closeSideAngle);
-
-        /* data.wall is: 
-        * (0,0,0,0,0) if no wall
-        * (wallLength, bearing, x) if wall. (x = -1 if on left, 1 if wall on right) 
-        */
+        double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));
         
+        for (double yExtrapolate = leftWallY[0]; yExtrapolate > -10; yExtrapolate -= grid.gridSize) {
+        	double xExtrapolate = (yExtrapolate - leftCoeffs[0]) / leftCoeffs[1];
+        	if (yExtrapolate > leftWallY[0] && grid.filled(xExtrapolate, yExtrapolate)) {
+        		// This means we are extrapolating in the wrong direction, and should stop!
+        		break;
+        	}
+        	grid.set(xExtrapolate, yExtrapolate, 2);
+        }
         
+        for (double yExtrapolate = rightWallY[0]; yExtrapolate > -10; yExtrapolate -= grid.gridSize) {
+        	double xExtrapolate = (yExtrapolate - rightCoeffs[0]) / rightCoeffs[1];
+        	if (yExtrapolate > rightWallY[0] && grid.filled(xExtrapolate, yExtrapolate)) {
+        		break;
+        	}
+        	grid.set(xExtrapolate, yExtrapolate, 2);
+        }
         
         double[] output = new double[] {0, 0, 0, 0, 0};
         double bearingAngle = Math.atan(1/Math.abs(rightCoeffs[1]));
