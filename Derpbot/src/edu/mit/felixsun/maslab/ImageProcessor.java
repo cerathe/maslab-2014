@@ -336,6 +336,7 @@ public class ImageProcessor {
         Mat leftHeights = new Mat();
         int rightMostContour = 0;
         double rightX = 0;
+        double thisBound = 0;
         Mat rightHeights = new Mat();
         
         for (int i=0; i<goodContours.size(); i++) {
@@ -362,65 +363,72 @@ public class ImageProcessor {
 	        */
 	        Mat heights = new Mat();
 			Core.reduce(polygonImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-	        if(bounding.x<leftX){
+	        if(bounding.x<leftX && bounding.area()>MIN_GOOD_AREA){
 	        	leftMostContour = i;
 	        	leftX = bounding.x;
 	        	leftHeights = heights;
 	        }
-	        if(bounding.x + bounding.width>rightX){
+	        if(bounding.x + bounding.width>rightX + thisBound && bounding.area()>MIN_GOOD_AREA){
 	        	rightMostContour = i;
-	        	rightX = bounding.x + bounding.width;
+	        	rightX = bounding.x; 
+	        	thisBound = bounding.width;
 	        	rightHeights = heights;
 	        }
 			for (int j = 0; j < heights.width(); j++) {
+				
 	            double thisHeight = heights.get(0, j)[0] / 255;
 	            if (thisHeight < 2) {
 	                    continue;
 	            }
+	            
 	            double distance = distanceConvert(thisHeight, wallStripeHeight);
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
 	            double wallX = Math.cos(angle)*distance;
 	            double wallY = Math.sin(angle)*distance;
 	            grid.set(wallX, wallY, value);
 			}
+			
         }
         // Get the leftmost three points and the rightmost 3 points.
-        double[] leftWallX = new double[]{0,0,0};
-        double[] rightWallX = new double[]{0,0,0};
-        double[] leftWallY = new double[]{0,0,0};
-        double[] rightWallY = new double[]{0,0,0};
+        double[] leftWallX = new double[20];
+        double[] rightWallX = new double[20];
+        double[] leftWallY = new double[20];
+        double[] rightWallY = new double[20];
         int counter = 0;
         for(int i = 0; i<leftHeights.width(); i++){
         	if(leftHeights.get(0, i)[0]/255 > 2){
         		double theta = angularPosition(leftX + i, hsvImage.width());
-        		double r = distanceConvert(leftHeights.get(0, i)[0], wallStripeHeight);
+        		double thisHeight = leftHeights.get(0, i)[0]/255;
+        		double r = distanceConvert(thisHeight, wallStripeHeight);
         		leftWallX[counter] = r*Math.cos(theta);
         		leftWallY[counter] = r*Math.sin(theta);
         		counter ++;
         	}
-        	if(counter>=3){
+        	if(counter>=20){
         		break;
         	}
         }
         counter = 0;
         for(int i = rightHeights.width()-1; i > -1; i--){
         	if(rightHeights.get(0, i)[0]/255 > 2){
-        		double theta = angularPosition(rightX - (rightHeights.width()-1-i), hsvImage.width());
-        		double r = distanceConvert(rightHeights.get(0, i)[0], wallStripeHeight);
-        		System.out.println(r);
+        		double theta = angularPosition(rightX + i, hsvImage.width());
+        		double thisHeight = rightHeights.get(0, i)[0]/255;
+        		double r = distanceConvert(thisHeight, wallStripeHeight);
         		rightWallX[counter] = r*Math.cos(theta);
         		rightWallY[counter] = r*Math.sin(theta);
+
         		counter ++;
         	}
-        	if(counter>=3){
+        	if(counter>=20){
         		break;
         	}
         }
         //linear regression
         double[] leftCoeffs = linReg(leftWallX, leftWallY);
         double[] rightCoeffs = linReg(rightWallX, rightWallY);
-        double ldist = Math.abs( leftCoeffs[1]/ (leftCoeffs[0] * Math.sqrt(1 + 1/(leftCoeffs[0] * leftCoeffs[0]))));
-        double rdist = Math.abs( rightCoeffs[1]/ (rightCoeffs[0] * Math.sqrt(1 + 1/(rightCoeffs[0] * rightCoeffs[0]))));
+        double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
+        double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));;
+        System.out.println(rdist);
 //        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
 //        
 //        //Get the left and right heights of the polygon.
@@ -486,10 +494,10 @@ public class ImageProcessor {
         
         
         double[] output = new double[] {0, 0, 0, 0, 0};
-        double bearingAngle = Math.atan(1/Math.abs(rightCoeffs[0]));
+        double bearingAngle = Math.atan(1/Math.abs(rightCoeffs[1]));
         output[0] = rdist;
-        output[1] = 0;//closeSideAngle;
-        output[2] = 0;//farSideAngle;
+        output[1] = rightCoeffs[0];//closeSideAngle;
+        output[2] = rightCoeffs[1];//farSideAngle;
         output[3] = bearingAngle;//>Math.PI? bearingAngle-Math.PI: bearingAngle;
         output[4] = 1;//onRight? 1:-1;
         
@@ -505,7 +513,7 @@ public class ImageProcessor {
 		double wallDist, bearingAngle, onRight;
 		double[] wall = data.wall;
 		wallDist = wall[0]; bearingAngle = wall[3]; onRight = wall[4];
-		
+		double a = wall[1]; double b = wall[2];
 		Mat processedImage = Mat.zeros(size, CvType.CV_8UC3);
         Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
         
@@ -527,9 +535,15 @@ public class ImageProcessor {
         theta = bearingAngle;
         //theta = closeSideAngle;
         double d = wallDist;
+        double gs = grid.gridSize;
         Point p1 = new Point(processedImage.width()/2, 1);
-        Point p2 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta), scale*d*Math.sin(theta));
+        Point p2 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta)/gs, scale*d*Math.sin(theta)/gs);
+        Point p3 = new Point(processedImage.width()/2,  scale*a/gs);
+        Point p4 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta)/gs, scale*a/gs - b*(scale*d*Math.cos(theta))/gs);
         Core.line(processedImage,p1,p2, RED);
+        Core.line(processedImage, p3, p4, GREEN);
+        
+        
         Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 
         for(int i =0; i<processedImage.rows(); i++){
         	finalImage.push_back(processedImage.row(processedImage.rows()-i-1));
