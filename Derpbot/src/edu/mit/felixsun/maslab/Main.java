@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
+import edu.mit.felixsun.maslab.WallFollowState;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
