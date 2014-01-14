@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
 import edu.mit.felixsun.maslab.WallFollowState;
+import edu.mit.felixsun.maslab.SonarReadState;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -37,8 +38,10 @@ class cvData {
 	public SparseGrid grid;
 	public double gridSize = 0.5;
 	public double[] wall;
+	public byte[] serialOut;
 	public Mat processedImage;
 	public cvData() {
+		serialOut = new byte[] {' '};
 		offset = -2;
 		grid = new SparseGrid(gridSize);
 		wall = new double[] {0,0,0,0,0};
@@ -236,73 +239,82 @@ public class Main {
             System.out.println(e);
             return;
 		}
+		State myState = new SonarReadState();
 
+		cvData data = new cvData();
 		while (true) {
-            //for ball following
-            double offset;
-            double diff;
-            double integral = 0;
-            
-            //for wall following
-            double[] wall = new double[]{0, 0, 0, 0, 0}; 
-            double walloffset = 0;
-            double walldiff;
-            double wallint = 0;
-            
-            int motorA = 0;
-            int motorB = 0;
-            synchronized(handle.data){
-                    offset = handle.data.offset;
-                    wall = handle.data.wall;
-            }
-            System.out.println(offset);
-            if (offset < -1){
-                    // We don't see color.
-                    if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
-                            //or a wall.
-                            motorA = 0;
-                            motorB = 0;
-                    }
-                    else{
-                            // we see a wall: steer proportional to your offset from the wall.
-                            double onRight = wall[4];
-                            double wallDist = wall[0];
-                            double bearing = wall[3];
-                            if(wallDist>TOOCLOSE){
-                            	motorA = (int) SPEED;
-                            	motorB = (int) SPEED;
-                            	System.out.println(wallDist);
-                            }
-                            else{
-                            	System.out.println("TOOCLOSE");
-                            	motorA = (int) -onRight* SPEED;
-                            	motorB = (int) onRight * SPEED;
-                            }
-                            
+			
+//            //for ball following
+//            double offset;
+//            double diff;
+//            double integral = 0;
+//            
+//            //for wall following
+//            double[] wall = new double[]{0, 0, 0, 0, 0}; 
+//            double walloffset = 0;
+//            double walldiff;
+//            double wallint = 0;
+//            
+//            int motorA = 0;
+//            int motorB = 0;
+//            synchronized(handle.data){
+//                    offset = handle.data.offset;
+//                    wall = handle.data.wall;
+//            }
+//            System.out.println(offset);
+//            if (offset < -1){
+//                    // We don't see color.
+//                    if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
+//                            //or a wall.
+//                            motorA = 0;
+//                            motorB = 0;
+//                    }
+//                    else{
+//                            // we see a wall: steer proportional to your offset from the wall.
+//                            double onRight = wall[4];
+//                            double wallDist = wall[0];
+//                            double bearing = wall[3];
+//                            if(wallDist>TOOCLOSE){
+//                            	motorA = (int) SPEED;
+//                            	motorB = (int) SPEED;
+//                            	System.out.println(wallDist);
+//                            }
+//                            else{
+//                            	System.out.println("TOOCLOSE");
+//                            	motorA = (int) -onRight* SPEED;
+//                            	motorB = (int) onRight * SPEED;
+//                            }
 //                            
-//                            // if bearing > PI/2, then you're facing away from the wall.
-//                            walloffset= onRight*(bearing-Math.PI/2);
-//                            wallint += walloffset;
-//                            
-//                            walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
-//                            motorA = (int) (SPEED + walldiff);
-//                            motorB = (int) (SPEED - walldiff);
-//                            
-                    }
-                    
-            } else {
-                    // Steer proportional to where the color is.
-                    integral += offset;
-                    diff = SPEED*offset + I_GAIN*integral;
-                    motorA = (int) (SPEED - diff);
-                    motorB = (int) (SPEED + diff);
-            }
-
-			byte[] outData = new byte[4];
-			outData[0] = 'S';				// Start signal "S"
-			outData[1] = (byte) -motorA;	// Motor A data
-			outData[2] = (byte) motorB;		// Motor B data
-			outData[3] = 'E';				// End signal "E"
+////                            
+////                            // if bearing > PI/2, then you're facing away from the wall.
+////                            walloffset= onRight*(bearing-Math.PI/2);
+////                            wallint += walloffset;
+////                            
+////                            walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
+////                            motorA = (int) (SPEED + walldiff);
+////                            motorB = (int) (SPEED - walldiff);
+////                            
+//                    }
+//                    
+//            } else {
+//                    // Steer proportional to where the color is.
+//                    integral += offset;
+//                    diff = SPEED*offset + I_GAIN*integral;
+//                    motorA = (int) (SPEED - diff);
+//                    motorB = (int) (SPEED + diff);
+//            }
+//
+//			byte[] outData = new byte[4];
+//			outData[0] = 'S';				// Start signal "S"
+//			outData[1] = (byte) -motorA;	// Motor A data
+//			outData[2] = (byte) motorB;		// Motor B data
+//			outData[3] = 'E';				// End signal "E"
+			try {
+				data.serialOut = serialPort.readBytes();
+			} catch (SerialPortException e2) {
+				e2.printStackTrace();
+			}
+			byte[] outData = myState.step(data);
 			try {
 				serialPort.writeBytes(outData);
 			} catch (SerialPortException e1) {
