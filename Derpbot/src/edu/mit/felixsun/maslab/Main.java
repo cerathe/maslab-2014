@@ -75,6 +75,8 @@ class SparseGrid {
 		/*
 		 * Clears any isolated wall blocks.
 		 * (Wall blocks with nothing in the 8 positions around them.)
+		 * 
+		 * Removes artifacts from the 45- and 135-degree positions by restricting the view angle to the middle 0.4Pi radians. 
 		 */
 		for (Entry<Integer, Integer> pair : map.keySet()) {
 			int x = pair.getKey();
@@ -91,6 +93,9 @@ class SparseGrid {
 						saveThis = true;
 						break;
 					}
+				}
+				if(!(Math.atan((double)y/x)<-0.22*Math.PI || Math.atan((double)y/x)>0.28*Math.PI)){
+					saveThis = false;
 				}
 				if (saveThis) {
 					break;
@@ -116,6 +121,7 @@ class cvHandle implements Runnable {
 	Thread t;
 
 	public void run(){
+		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/walls.jpg");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;
@@ -130,7 +136,7 @@ class cvHandle implements Runnable {
 			height = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
 			rawImage = new Mat();
 		} else if (CAM_MODE == 1) {
-			rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png"); 
+			rawImage = Highgui.imread(FILENAME); 
 			width = rawImage.width();
 			height = rawImage.height();
 		}
@@ -150,7 +156,7 @@ class cvHandle implements Runnable {
 				camera.grab();
 				camera.retrieve(rawImage);
 			} else if (CAM_MODE == 1) {
-				rawImage = Highgui.imread("C:\\Users\\Felix\\Documents\\maslab\\wallsandballs.png"); 
+				rawImage = Highgui.imread(FILENAME); 
 			}
 			// Process the image however you like
 			cvData tempData = ImageProcessor.process(rawImage);

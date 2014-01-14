@@ -276,11 +276,36 @@ public class ImageProcessor {
             }
     }
 	
+    //Linear regression
+    private static double[] linReg(double[] x, double[] y){
+    	double xybar = 0;
+    	double xbar = 0;
+    	double ybar = 0;
+    	double x2bar = 0;
+    	double n = x.length;
+    	for(int i=0; i<x.length; i++){
+    		xybar += x[i]*y[i]/n;
+    		xbar += x[i]/n;
+    		ybar += y[i]/n;
+    		x2bar += x[i]*x[i]/n;
+    	}
+    	double b = (xybar - xbar*ybar)/(x2bar - xbar*xbar);
+    	double a = ybar - b*xbar;
+    	return new double[]{a,b};
+    	
+    }
+    
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
+		
 		//Filter image by color
         Mat colorMask = new Mat();
         colorMask = colorFilter(hsvImage, lowerHue, upperHue);
+        //dilate and erode
+        Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+        Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+
+        
         //Find the largest connected component
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         List<MatOfPoint> goodContours = new ArrayList<MatOfPoint>();
@@ -305,6 +330,14 @@ public class ImageProcessor {
         	return processedImage;
         }
         SparseGrid grid = data.grid;
+        
+        int leftMostContour = 0;
+        double leftX = hsvImage.width();
+        Mat leftHeights = new Mat();
+        int rightMostContour = 0;
+        double rightX = 0;
+        Mat rightHeights = new Mat();
+        
         for (int i=0; i<goodContours.size(); i++) {
 	        //Approximate the blob by a coarse polygon
 	        MatOfPoint2f polygon = new MatOfPoint2f();
@@ -321,10 +354,24 @@ public class ImageProcessor {
 	        List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
 	        approxWall.add(poly);
 	        Imgproc.drawContours(polygonImage, approxWall, 0, BLUE, -1);
-        
-	        // Figure out heights across the polygon.
+	        
+	        /* Figure out heights across the polygon. 
+	        * Also keep the leftmost and rightmost 3 points.
+	        * These points are used to extrapolate 
+	        * via linear fitting the walls on the sides.
+	        */
 	        Mat heights = new Mat();
 			Core.reduce(polygonImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
+	        if(bounding.x<leftX){
+	        	leftMostContour = i;
+	        	leftX = bounding.x;
+	        	leftHeights = heights;
+	        }
+	        if(bounding.x + bounding.width>rightX){
+	        	rightMostContour = i;
+	        	rightX = bounding.x + bounding.width;
+	        	rightHeights = heights;
+	        }
 			for (int j = 0; j < heights.width(); j++) {
 	            double thisHeight = heights.get(0, j)[0] / 255;
 	            if (thisHeight < 2) {
@@ -337,7 +384,43 @@ public class ImageProcessor {
 	            grid.set(wallX, wallY, value);
 			}
         }
-        
+        // Get the leftmost three points and the rightmost 3 points.
+        double[] leftWallX = new double[]{0,0,0};
+        double[] rightWallX = new double[]{0,0,0};
+        double[] leftWallY = new double[]{0,0,0};
+        double[] rightWallY = new double[]{0,0,0};
+        int counter = 0;
+        for(int i = 0; i<leftHeights.width(); i++){
+        	if(leftHeights.get(0, i)[0]/255 > 2){
+        		double theta = angularPosition(leftX + i, hsvImage.width());
+        		double r = distanceConvert(leftHeights.get(0, i)[0], wallStripeHeight);
+        		leftWallX[counter] = r*Math.cos(theta);
+        		leftWallY[counter] = r*Math.sin(theta);
+        		counter ++;
+        	}
+        	if(counter>=3){
+        		break;
+        	}
+        }
+        counter = 0;
+        for(int i = rightHeights.width()-1; i > -1; i--){
+        	if(rightHeights.get(0, i)[0]/255 > 2){
+        		double theta = angularPosition(rightX - (rightHeights.width()-1-i), hsvImage.width());
+        		double r = distanceConvert(rightHeights.get(0, i)[0], wallStripeHeight);
+        		System.out.println(r);
+        		rightWallX[counter] = r*Math.cos(theta);
+        		rightWallY[counter] = r*Math.sin(theta);
+        		counter ++;
+        	}
+        	if(counter>=3){
+        		break;
+        	}
+        }
+        //linear regression
+        double[] leftCoeffs = linReg(leftWallX, leftWallY);
+        double[] rightCoeffs = linReg(rightWallX, rightWallY);
+        double ldist = Math.abs( leftCoeffs[1]/ (leftCoeffs[0] * Math.sqrt(1 + 1/(leftCoeffs[0] * leftCoeffs[0]))));
+        double rdist = Math.abs( rightCoeffs[1]/ (rightCoeffs[0] * Math.sqrt(1 + 1/(rightCoeffs[0] * rightCoeffs[0]))));
 //        List<MatOfPoint> listy = new ArrayList<MatOfPoint>(); listy.add(poly);
 //        
 //        //Get the left and right heights of the polygon.
@@ -403,13 +486,12 @@ public class ImageProcessor {
         
         
         double[] output = new double[] {0, 0, 0, 0, 0};
-//        if(Imgproc.contourArea(poly) > MIN_GOOD_AREA){
-//                output[0] = Math.abs(wallDist);
-//                output[1] = closeSideAngle;
-//                output[2] = farSideAngle;
-//                output[3] = bearingAngle>Math.PI? bearingAngle-Math.PI: bearingAngle;
-//                output[4] = onRight? 1:-1;
-//        }
+        double bearingAngle = Math.atan(1/Math.abs(rightCoeffs[0]));
+        output[0] = rdist;
+        output[1] = 0;//closeSideAngle;
+        output[2] = 0;//farSideAngle;
+        output[3] = bearingAngle;//>Math.PI? bearingAngle-Math.PI: bearingAngle;
+        output[4] = 1;//onRight? 1:-1;
         
         data.wall = output;
         data.grid = grid;
@@ -444,8 +526,10 @@ public class ImageProcessor {
         double theta = onRight==1? bearingAngle: Math.PI - bearingAngle;
         theta = bearingAngle;
         //theta = closeSideAngle;
-        double d = wallDist; 
-
+        double d = wallDist;
+        Point p1 = new Point(processedImage.width()/2, 1);
+        Point p2 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta), scale*d*Math.sin(theta));
+        Core.line(processedImage,p1,p2, RED);
         Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 
         for(int i =0; i<processedImage.rows(); i++){
         	finalImage.push_back(processedImage.row(processedImage.rows()-i-1));
