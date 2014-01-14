@@ -41,13 +41,17 @@ class cvData {
 	public SparseGrid grid;
 	public double gridSize = 0.5;
 	public double[] wall;
-	public Ultrasonic ultra1;
 	public Mat processedImage;
 	public cvData() {
 		offset = -2;
 		grid = new SparseGrid(gridSize);
 		wall = new double[] {0,0,0,0,0};
 	}
+}
+
+class Sensors {
+	public Ultrasonic ultraLeft;
+	public Ultrasonic ultraRight;
 }
 
 class SparseGrid {
@@ -124,15 +128,15 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	
-	public final int CAM_MODE = 1;
+	public final int CAM_MODE = 0;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
 	Thread t;
 
 	public void run(){
-		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
-		// String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
+//		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;
@@ -193,7 +197,7 @@ class cvHandle implements Runnable {
 		}
 	}
 	
-	private static JLabel createWindow(String name, int width, int height) {    
+	public static JLabel createWindow(String name, int width, int height) {    
         JFrame imageFrame = new JFrame(name);
         imageFrame.setSize(width, height);
         imageFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -206,7 +210,7 @@ class cvHandle implements Runnable {
         return imagePane;
     }
     
-    private static void updateWindow(JLabel imagePane, Mat mat) {
+    public static void updateWindow(JLabel imagePane, Mat mat) {
     	int w = (int) (mat.size().width);
     	int h = (int) (mat.size().height);
     	if (imagePane.getWidth() != w || imagePane.getHeight() != h) {
@@ -232,15 +236,25 @@ public class Main {
 		cvThread.start();
 		
 		State myState = new SonarReadState();
-
-		cvData data = new cvData();
+		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 480);
+		
 		// Start serial communication.
 		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
-		data.ultra1 = new Ultrasonic(23, 24);
-		comm.registerDevice(data.ultra1);
+		Sensors sensors = new Sensors();
+		sensors.ultraRight = new Ultrasonic(23, 24);
+		sensors.ultraLeft = new Ultrasonic(25, 26);
+		comm.registerDevice(sensors.ultraRight);
+		comm.registerDevice(sensors.ultraLeft);
+		comm.initialize();
 		while (true) {
+			cvData data = handle.data;
 			comm.updateSensorData();
-			myState.step(data);
+			System.out.println(sensors.ultraLeft.getDistance());
+			myState.step(data, sensors);
+			if (data.processedImage != null) {
+				data.processedImage = ImageProcessor.drawGrid(data.processedImage.size(), data);
+				cvHandle.updateWindow(cameraPane, data.processedImage);
+			}
 //            //for ball following
 //            double offset;
 //            double diff;

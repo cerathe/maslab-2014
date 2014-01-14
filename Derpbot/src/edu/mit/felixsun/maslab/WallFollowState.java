@@ -23,7 +23,7 @@ public class WallFollowState extends State {
 		}
 	}
 	
-	public void step(cvData data) {
+	public void step(cvData data, Sensors sensors) {
 		double leftD = getSideDistance(data.grid, -1);
 		double rightD = getSideDistance(data.grid, 1);
 		double minD;

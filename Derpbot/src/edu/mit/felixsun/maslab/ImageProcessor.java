@@ -109,7 +109,7 @@ public class ImageProcessor {
 //		 findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
 		findBalls(hsvImage, data);
 		data.grid.removeIslands();
-		processedImage = drawGrid(hsvImage.size(), data);
+		// processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -417,8 +417,6 @@ public class ImageProcessor {
         //linear regression
         double[] leftCoeffs = linReg(leftWallX, leftWallY);
         double[] rightCoeffs = linReg(rightWallX, rightWallY);
-        System.out.println(leftCoeffs[0]);
-        System.out.println(leftCoeffs[1]);
         double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
         double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));
         
@@ -428,7 +426,7 @@ public class ImageProcessor {
         		// This means we are extrapolating in the wrong direction, and should stop!
         		break;
         	}
-        	grid.set(xExtrapolate, yExtrapolate, 2);
+        	//grid.set(xExtrapolate, yExtrapolate, 2);
         }
         
         for (double yExtrapolate = rightWallY[0]; yExtrapolate > -10; yExtrapolate -= grid.gridSize) {
@@ -436,7 +434,7 @@ public class ImageProcessor {
         	if (yExtrapolate > rightWallY[0] && grid.filled(xExtrapolate, yExtrapolate)) {
         		break;
         	}
-        	grid.set(xExtrapolate, yExtrapolate, 2);
+        	//grid.set(xExtrapolate, yExtrapolate, 2);
         }
         
         double[] output = new double[] {0, 0, 0, 0, 0};
