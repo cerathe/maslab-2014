@@ -119,15 +119,15 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	
-	public final int CAM_MODE = 0;
+	public final int CAM_MODE = 1;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
 	Thread t;
 
 	public void run(){
-		// String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
-		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
+		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+		// String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;

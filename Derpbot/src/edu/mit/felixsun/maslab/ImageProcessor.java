@@ -1,6 +1,7 @@
 package edu.mit.felixsun.maslab;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -299,7 +300,7 @@ public class ImageProcessor {
     }
     
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
-		int REGRESSION_SIZE = 20;
+		int REGRESSION_SIZE = 10;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		
 		//Filter image by color
@@ -369,12 +370,24 @@ public class ImageProcessor {
 	            
 	            double distance = distanceConvert(thisHeight, wallStripeHeight);
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
-	            double wallX = Math.cos(angle)*distance;
-	            double wallY = Math.sin(angle)*distance;
-	            Point thisPt = new Point(wallX, wallY);
-            	distToPoints.put((double) (bounding.x+j), thisPt);
-	            grid.set(wallX, wallY, value);
+	            if(angle<0.75*Math.PI && angle > 0.25*Math.PI){
+		            double wallX = Math.cos(angle)*distance;
+		            double wallY = Math.sin(angle)*distance;
+	            	grid.set(wallX, wallY, value);
+	            }
 			}
+        }
+        grid.removeIslands();
+        // Make distToPoints:
+      	Enumeration<Entry<Integer, Integer>> keys = grid.map.keys();
+        while(keys.hasMoreElements()){
+        	Entry<Integer, Integer> coords = keys.nextElement();
+        	double wallX = grid.gridSize * coords.getKey();
+        	double wallY = grid.gridSize * coords.getValue();
+        	
+	        Point thisPt = new Point(wallX, wallY);
+	        double theta = Math.atan(wallY/wallX)>0? Math.atan(wallY/wallX): Math.PI - Math.abs(Math.atan(wallY/wallX));
+	    	distToPoints.put(theta, thisPt);
         }
         // Get the leftmost n points and the rightmost n points.
         double[] leftWallX = new double[REGRESSION_SIZE];
@@ -404,6 +417,8 @@ public class ImageProcessor {
         //linear regression
         double[] leftCoeffs = linReg(leftWallX, leftWallY);
         double[] rightCoeffs = linReg(rightWallX, rightWallY);
+        System.out.println(leftCoeffs[0]);
+        System.out.println(leftCoeffs[1]);
         double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
         double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));
         
