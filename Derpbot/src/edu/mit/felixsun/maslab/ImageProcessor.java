@@ -1,6 +1,7 @@
 package edu.mit.felixsun.maslab;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -299,15 +300,15 @@ public class ImageProcessor {
     }
     
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
-		int REGRESSION_SIZE = 6;
+		int REGRESSION_SIZE = 10;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		
 		//Filter image by color
         Mat colorMask = new Mat();
         colorMask = colorFilter(hsvImage, lowerHue, upperHue);
         //dilate and erode - These don't appear to help right now, so let's not do them.
-        // Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
-        // Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+         Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
+         Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
 
         
         //Find the largest connected component
@@ -335,8 +336,7 @@ public class ImageProcessor {
         }
         SparseGrid grid = data.grid;
         
-        SortedMap<Double, Point> distToPointsLeft = new TreeMap<Double, Point>();
-        SortedMap<Double, Point> distToPointsRight = new TreeMap<Double, Point>();
+        SortedMap<Double, Point> distToPoints = new TreeMap<Double, Point>();
         for (int i=0; i<goodContours.size(); i++) {
 	        //Approximate the blob by a coarse polygon
 	        MatOfPoint2f polygon = new MatOfPoint2f();
@@ -370,16 +370,24 @@ public class ImageProcessor {
 	            
 	            double distance = distanceConvert(thisHeight, wallStripeHeight);
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
-	            double wallX = Math.cos(angle)*distance;
-	            double wallY = Math.sin(angle)*distance;
-	            Point thisPt = new Point(wallX, wallY);
-	            if (angle < Math.PI / 2) {
-	            	distToPointsRight.put(distance, thisPt);
-	            } else {
-	            	distToPointsLeft.put(distance, thisPt);
+	            if(angle<0.75*Math.PI && angle > 0.25*Math.PI){
+		            double wallX = Math.cos(angle)*distance;
+		            double wallY = Math.sin(angle)*distance;
+	            	grid.set(wallX, wallY, value);
 	            }
-	            grid.set(wallX, wallY, value);
 			}
+        }
+        grid.removeIslands();
+        // Make distToPoints:
+      	Enumeration<Entry<Integer, Integer>> keys = grid.map.keys();
+        while(keys.hasMoreElements()){
+        	Entry<Integer, Integer> coords = keys.nextElement();
+        	double wallX = grid.gridSize * coords.getKey();
+        	double wallY = grid.gridSize * coords.getValue();
+        	
+	        Point thisPt = new Point(wallX, wallY);
+	        double theta = Math.atan(wallY/wallX)>0? Math.atan(wallY/wallX): Math.PI - Math.abs(Math.atan(wallY/wallX));
+	    	distToPoints.put(theta, thisPt);
         }
         // Get the leftmost n points and the rightmost n points.
         double[] leftWallX = new double[REGRESSION_SIZE];
@@ -387,13 +395,19 @@ public class ImageProcessor {
         double[] leftWallY = new double[REGRESSION_SIZE];
         double[] rightWallY = new double[REGRESSION_SIZE];
         
+        // Not enough points to do regression.  Stop.
+        if (distToPoints.size() < 2*REGRESSION_SIZE) {
+        	return processedImage;
+        }
+        	
+        
         for (int i = 0; i < REGRESSION_SIZE; i++) {
-        	double leftDist = distToPointsLeft.firstKey();
-        	double rightDist = distToPointsRight.firstKey();
-        	Point leftPt = distToPointsLeft.get(leftDist);
-        	Point rightPt = distToPointsRight.get(rightDist);
-        	distToPointsLeft.remove(leftDist);
-        	distToPointsRight.remove(rightDist);
+        	double leftX = distToPoints.firstKey();
+        	double rightX = distToPoints.lastKey();
+        	Point leftPt = distToPoints.get(leftX);
+        	Point rightPt = distToPoints.get(rightX);
+        	distToPoints.remove(leftX);
+        	distToPoints.remove(rightX);
         	leftWallX[i] = leftPt.x;
         	leftWallY[i] = leftPt.y;
         	rightWallX[i] = rightPt.x;
@@ -403,6 +417,8 @@ public class ImageProcessor {
         //linear regression
         double[] leftCoeffs = linReg(leftWallX, leftWallY);
         double[] rightCoeffs = linReg(rightWallX, rightWallY);
+        System.out.println(leftCoeffs[0]);
+        System.out.println(leftCoeffs[1]);
         double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
         double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));
         
