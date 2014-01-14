@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
 import edu.mit.felixsun.maslab.WallFollowState;
@@ -26,6 +27,8 @@ import org.opencv.core.Mat;
 import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
+import comm.MapleComm;
+import comm.MapleIO;
 import jssc.SerialPort;
 import jssc.SerialPortException;
 
@@ -38,10 +41,9 @@ class cvData {
 	public SparseGrid grid;
 	public double gridSize = 0.5;
 	public double[] wall;
-	public byte[] serialOut;
+	public Ultrasonic ultra1;
 	public Mat processedImage;
 	public cvData() {
-		serialOut = new byte[] {' '};
 		offset = -2;
 		grid = new SparseGrid(gridSize);
 		wall = new double[] {0,0,0,0,0};
@@ -228,22 +230,17 @@ public class Main {
 		cvHandle handle = new cvHandle(); // Run the cv stuff.
 		Thread cvThread = new Thread(handle);
 		cvThread.start();
-
-		// Start serial communication.
-		SerialPort serialPort;
-		serialPort = new SerialPort("COM5");
-		try {
-            serialPort.openPort();
-            serialPort.setParams(115200, 8, 1, 0);
-		} catch (Exception e) {
-            System.out.println(e);
-            return;
-		}
+		
 		State myState = new SonarReadState();
 
 		cvData data = new cvData();
+		// Start serial communication.
+		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+		data.ultra1 = new Ultrasonic(23, 24);
+		comm.registerDevice(data.ultra1);
 		while (true) {
-			
+			comm.updateSensorData();
+			myState.step(data);
 //            //for ball following
 //            double offset;
 //            double diff;
@@ -309,17 +306,7 @@ public class Main {
 //			outData[1] = (byte) -motorA;	// Motor A data
 //			outData[2] = (byte) motorB;		// Motor B data
 //			outData[3] = 'E';				// End signal "E"
-			try {
-				data.serialOut = serialPort.readBytes();
-			} catch (SerialPortException e2) {
-				e2.printStackTrace();
-			}
-			byte[] outData = myState.step(data);
-			try {
-				serialPort.writeBytes(outData);
-			} catch (SerialPortException e1) {
-				e1.printStackTrace();
-			}
+
 			
 			try {
 				Thread.sleep(100);

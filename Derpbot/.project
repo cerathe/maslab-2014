@@ -14,4 +14,11 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>MaslabComm</name>
+			<type>2</type>
+			<location>C:/Users/Felix/Documents/maslab/maslab-2014/MaslabComm</location>
+		</link>
+	</linkedResources>
 </projectDescription>

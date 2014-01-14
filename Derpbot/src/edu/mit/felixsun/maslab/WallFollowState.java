@@ -23,7 +23,7 @@ public class WallFollowState extends State {
 		}
 	}
 	
-	public byte[] step(cvData data) {
+	public void step(cvData data) {
 		double leftD = getSideDistance(data.grid, -1);
 		double rightD = getSideDistance(data.grid, 1);
 		double minD;
@@ -58,7 +58,6 @@ public class WallFollowState extends State {
 		outData[1] = (byte) -motorA;	// Motor A data
 		outData[2] = (byte) motorB;		// Motor B data
 		outData[3] = 'E';				// End signal "E"
-		return outData;
 	}
 	
 	double getSideDistance(SparseGrid map, int direction) {

@@ -11,8 +11,6 @@ public class State {
 	public State() {
 	}
 	
-	public byte[] step(cvData data) {
-		byte[] out = new byte[]{1};
-		return out;
+	public void step(cvData data) {
 	}
 }
