@@ -7,8 +7,8 @@ public class WallFollowState extends State {
 	double lastD;
 	double setPoint;
 	double driveSpeed;
-	double PGAIN = -5;	// Motor units / inch
-	double DGAIN = -5;
+	double PGAIN = -0.01;	// Motor units / inch
+	double DGAIN = -0.01;
 	public WallFollowState(double dist, double speed) {
 		lastD = -1.23;	// An initial value, to indicate that we don't have prior state.
 		if (dist < 0) {
@@ -17,7 +17,7 @@ public class WallFollowState extends State {
 			setPoint = dist;
 		}
 		if (speed < 0) {
-			driveSpeed = 20;
+			driveSpeed = 0.2;
 		} else {
 			driveSpeed = speed;
 		}
@@ -44,20 +44,20 @@ public class WallFollowState extends State {
 		}
 		double diff = PGAIN*(minD - setPoint) + DGAIN*derivative;
 		
-		int motorA, motorB;
-		if (direction == -1) {
-			motorA = (int) (driveSpeed + diff);
-			motorB = (int) (driveSpeed - diff);
+		double motorA, motorB;
+		if (getFrontDistance(data.grid, data.robotWidth) < setPoint) {
+			motorA = -driveSpeed;
+			motorB = driveSpeed;
+		} else if (direction == -1) {
+			motorA = driveSpeed + diff;
+			motorB = driveSpeed - diff;
 		} else {
-			motorA = (int) (driveSpeed - diff);
-			motorB = (int) (driveSpeed + diff);
+			motorA = driveSpeed - diff;
+			motorB = driveSpeed + diff;
 		}
 		
-		byte[] outData = new byte[4];
-		outData[0] = 'S';				// Start signal "S"
-		outData[1] = (byte) -motorA;	// Motor A data
-		outData[2] = (byte) motorB;		// Motor B data
-		outData[3] = 'E';				// End signal "E"
+		sensors.leftDriveMotor.setSpeed(-motorA);
+		sensors.rightDriveMotor.setSpeed(motorB);
 	}
 	
 	double getSideDistance(SparseGrid map, int direction) {
@@ -76,6 +76,25 @@ public class WallFollowState extends State {
 			}
 		}
 		return Math.abs(gridX)*map.gridSize;
+	}
+	
+	double getFrontDistance(SparseGrid map, double robotWidth) {
+		/*
+		 * Finds the distance from the front of the robot to a wall.
+		 */
+		double minDist = 24;
+		for (double x = -robotWidth; x < robotWidth; x += map.gridSize) {
+			double y;
+			for (y = 0; y < 24; y += map.gridSize) {
+				if (map.wallNumbers.contains(map.get(x, y))) {
+					break;
+				}
+			}
+			if (y < minDist) {
+				minDist = y;
+			}
+		}
+	return minDist;
 	}
 	
 }

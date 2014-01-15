@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
 import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
@@ -40,7 +41,8 @@ class cvData {
 	 */
 	public double offset;
 	public SparseGrid grid;
-	public double gridSize = 1;
+	public double gridSize = 1;		// Inches / square
+	public double robotWidth = 10;	// Inches
 	public double[] wall;
 	public Mat processedImage;
 	public cvData() {
@@ -53,6 +55,8 @@ class cvData {
 class Sensors {
 	public Ultrasonic ultraLeft;
 	public Ultrasonic ultraRight;
+	public Cytron leftDriveMotor;
+	public Cytron rightDriveMotor;
 }
 
 class SparseGrid {
@@ -245,7 +249,8 @@ public class Main {
 		Thread cvThread = new Thread(handle);
 		cvThread.start();
 		
-		State myState = new SonarReadState();
+		State sonarState = new SonarReadState();
+		State wallFollowState = new WallFollowState(-1, -1);
 		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
 		
 		// Start serial communication.
@@ -253,85 +258,33 @@ public class Main {
 		Sensors sensors = new Sensors();
 		sensors.ultraRight = new Ultrasonic(30, 29);
 		sensors.ultraLeft = new Ultrasonic(32, 31);
+		sensors.leftDriveMotor = new Cytron(2, 1);
+		sensors.rightDriveMotor = new Cytron(7, 6);
+		DigitalOutput ground1 = new DigitalOutput(0);
+		DigitalOutput ground2 = new DigitalOutput(5);
+		
 		comm.registerDevice(sensors.ultraRight);
 		comm.registerDevice(sensors.ultraLeft);
+		comm.registerDevice(sensors.leftDriveMotor);
+		comm.registerDevice(sensors.rightDriveMotor);
+		comm.registerDevice(ground1);
+		comm.registerDevice(ground2);
 		comm.initialize();
+		
+		ground1.setValue(false);
+		ground2.setValue(false);
+		comm.transmit();
 		while (true) {
 			cvData data = handle.data;
-			comm.transmit();
 			comm.updateSensorData();
 //			System.out.println(sensors.ultraLeft.getDistance()*45);
-			myState.step(data, sensors);
+			sonarState.step(data, sensors);
 			if (data.processedImage != null) {
 				data.processedImage = ImageProcessor.drawGrid(data.processedImage.size(), data);
 				cvHandle.updateWindow(cameraPane, data.processedImage);
 			}
-//            //for ball following
-//            double offset;
-//            double diff;
-//            double integral = 0;
-//            
-//            //for wall following
-//            double[] wall = new double[]{0, 0, 0, 0, 0}; 
-//            double walloffset = 0;
-//            double walldiff;
-//            double wallint = 0;
-//            
-//            int motorA = 0;
-//            int motorB = 0;
-//            synchronized(handle.data){
-//                    offset = handle.data.offset;
-//                    wall = handle.data.wall;
-//            }
-//            System.out.println(offset);
-//            if (offset < -1){
-//                    // We don't see color.
-//                    if(Arrays.equals(wall, new double[]{0, 0, 0, 0, 0})){
-//                            //or a wall.
-//                            motorA = 0;
-//                            motorB = 0;
-//                    }
-//                    else{
-//                            // we see a wall: steer proportional to your offset from the wall.
-//                            double onRight = wall[4];
-//                            double wallDist = wall[0];
-//                            double bearing = wall[3];
-//                            if(wallDist>TOOCLOSE){
-//                            	motorA = (int) SPEED;
-//                            	motorB = (int) SPEED;
-//                            	System.out.println(wallDist);
-//                            }
-//                            else{
-//                            	System.out.println("TOOCLOSE");
-//                            	motorA = (int) -onRight* SPEED;
-//                            	motorB = (int) onRight * SPEED;
-//                            }
-//                            
-////                            
-////                            // if bearing > PI/2, then you're facing away from the wall.
-////                            walloffset= onRight*(bearing-Math.PI/2);
-////                            wallint += walloffset;
-////                            
-////                            walldiff = WALLSPEED*walloffset + I_GAIN_WALL*wallint; 
-////                            motorA = (int) (SPEED + walldiff);
-////                            motorB = (int) (SPEED - walldiff);
-////                            
-//                    }
-//                    
-//            } else {
-//                    // Steer proportional to where the color is.
-//                    integral += offset;
-//                    diff = SPEED*offset + I_GAIN*integral;
-//                    motorA = (int) (SPEED - diff);
-//                    motorB = (int) (SPEED + diff);
-//            }
-//
-//			byte[] outData = new byte[4];
-//			outData[0] = 'S';				// Start signal "S"
-//			outData[1] = (byte) -motorA;	// Motor A data
-//			outData[2] = (byte) motorB;		// Motor B data
-//			outData[3] = 'E';				// End signal "E"
-
+			wallFollowState.step(data, sensors);
+			comm.transmit();
 			
 			try {
 				Thread.sleep(10);
