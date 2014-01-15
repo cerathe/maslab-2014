@@ -78,7 +78,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (280.0 / pixelHeight) * objectHeight;
+		return (400.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
@@ -452,7 +452,7 @@ public class ImageProcessor {
 	}
 	
 	static Mat drawGrid(Size size, cvData data){
-		double scale = 10;
+		double scale = 5;
 		SparseGrid grid = data.grid;
 		double wallDist, bearingAngle, onRight;
 		double[] wall = data.wall;
@@ -484,8 +484,15 @@ public class ImageProcessor {
         Point p2 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta)/gs, scale*d*Math.sin(theta)/gs);
         Point p3 = new Point(processedImage.width()/2,  scale*a/gs);
         Point p4 = new Point(processedImage.width()/2 + scale*d*Math.cos(theta)/gs, scale*a/gs - b*(scale*d*Math.cos(theta))/gs);
-        Core.line(processedImage,p1,p2, RED);
-        Core.line(processedImage, p3, p4, GREEN);
+//        Core.line(processedImage,p1,p2, RED);
+//        Core.line(processedImage, p3, p4, GREEN);
+        
+        // And finally, draw the robot.
+        Point tl = new Point(-5 * grid.gridSize * scale + processedImage.width() / 2, 
+                -5 * grid.gridSize * scale);
+        Point br = new Point(5 * grid.gridSize * scale + processedImage.width() / 2, 
+                5 * grid.gridSize * scale);
+        Core.rectangle(processedImage, tl, br, YELLOW);
         
         
         Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 

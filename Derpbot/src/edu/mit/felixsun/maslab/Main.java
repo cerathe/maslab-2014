@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import devices.actuators.DigitalOutput;
 import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -39,7 +40,7 @@ class cvData {
 	 */
 	public double offset;
 	public SparseGrid grid;
-	public double gridSize = 0.5;
+	public double gridSize = 1;
 	public double[] wall;
 	public Mat processedImage;
 	public cvData() {
@@ -129,6 +130,7 @@ class cvHandle implements Runnable {
 	 */
 	
 	public final int CAM_MODE = 0;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -155,9 +157,15 @@ class cvHandle implements Runnable {
 			width = rawImage.width();
 			height = rawImage.height();
 		}
-		JLabel cameraPane = createWindow("Camera output", width, height);
-		JLabel opencvPane = createWindow("OpenCV output", width, height);
+		JLabel cameraPane;
+		JLabel opencvPane;
 
+		if (SHOW_IMAGES) {
+			cameraPane = createWindow("Camera output", width, height);
+			opencvPane = createWindow("OpenCV output", width, height);
+	
+		}
+		
 		// Main loop 
 		Mat processedImage = new Mat();
 		// Vision timing.  How many fps do we get?
@@ -182,8 +190,10 @@ class cvHandle implements Runnable {
 			
 			
 			// Update the GUI windows
-			updateWindow(cameraPane, rawImage);
-			updateWindow(opencvPane, processedImage);
+			if (SHOW_IMAGES) {
+				updateWindow(cameraPane, rawImage);
+				updateWindow(opencvPane, processedImage);
+			}
 			// Manually garbage collect, because opencv has memory issues :(
 			System.gc();
 			frames++;
@@ -236,20 +246,21 @@ public class Main {
 		cvThread.start();
 		
 		State myState = new SonarReadState();
-		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 480);
+		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
 		
 		// Start serial communication.
 		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
 		Sensors sensors = new Sensors();
-		sensors.ultraRight = new Ultrasonic(23, 24);
-		sensors.ultraLeft = new Ultrasonic(25, 26);
+		sensors.ultraRight = new Ultrasonic(30, 29);
+		sensors.ultraLeft = new Ultrasonic(32, 31);
 		comm.registerDevice(sensors.ultraRight);
 		comm.registerDevice(sensors.ultraLeft);
 		comm.initialize();
 		while (true) {
 			cvData data = handle.data;
+			comm.transmit();
 			comm.updateSensorData();
-			System.out.println(sensors.ultraLeft.getDistance());
+//			System.out.println(sensors.ultraLeft.getDistance()*45);
 			myState.step(data, sensors);
 			if (data.processedImage != null) {
 				data.processedImage = ImageProcessor.drawGrid(data.processedImage.size(), data);
@@ -323,7 +334,7 @@ public class Main {
 
 			
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
