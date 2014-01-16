@@ -78,7 +78,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (400.0 / pixelHeight) * objectHeight;
+		return (450.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
@@ -330,7 +330,6 @@ public class ImageProcessor {
 //        }
         goodContours = contours;
         
-        
         if (goodContours.size() == 0) {
         	return processedImage;
         }
@@ -343,6 +342,7 @@ public class ImageProcessor {
 	        MatOfPoint2f strip = new MatOfPoint2f(goodContours.get(i).toArray());
 	        Imgproc.approxPolyDP(strip, polygon, POLYAPPROXEPSILON, true);
 	        MatOfPoint poly = new MatOfPoint(polygon.toArray());
+	        MatOfPoint oldPoly = new MatOfPoint(polygon.toArray());
 	        //Draw polygon to new image.
 	        // To save space and time, make the polygon image smaller than the whole image.
 	        Rect bounding = Imgproc.boundingRect(poly);
@@ -351,8 +351,11 @@ public class ImageProcessor {
     			poly.put(pointX, 0, new double[] {poly.get(pointX, 0)[0] - bounding.x, poly.get(pointX, 0)[1] - bounding.y});
         	}
 	        List<MatOfPoint> approxWall = new ArrayList<MatOfPoint>();
+	        List<MatOfPoint> oldApproxWall = new ArrayList<MatOfPoint>();
 	        approxWall.add(poly);
+	        oldApproxWall.add(oldPoly);
 	        Imgproc.drawContours(polygonImage, approxWall, 0, BLUE, -1);
+	        Imgproc.drawContours(processedImage, oldApproxWall, 0, BLUE, -1);
 	        
 	        /* Figure out heights across the polygon. 
 	        * Also keep the leftmost and rightmost 3 points.

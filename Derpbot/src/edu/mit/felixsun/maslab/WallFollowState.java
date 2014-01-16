@@ -8,7 +8,7 @@ public class WallFollowState extends State {
 	double setPoint;
 	double driveSpeed;
 	double PGAIN = -0.01;	// Motor units / inch
-	double DGAIN = -0.01;
+	double DGAIN = -0.05;
 	public WallFollowState(double dist, double speed) {
 		lastD = -1.23;	// An initial value, to indicate that we don't have prior state.
 		if (dist < 0) {
@@ -21,6 +21,7 @@ public class WallFollowState extends State {
 		} else {
 			driveSpeed = speed;
 		}
+		System.out.println(driveSpeed);
 	}
 	
 	public void step(cvData data, Sensors sensors) {
@@ -42,22 +43,33 @@ public class WallFollowState extends State {
 		} else {
 			derivative = minD - lastD;
 		}
-		double diff = PGAIN*(minD - setPoint) + DGAIN*derivative;
+		double diff = PGAIN*(minD - setPoint - data.robotWidth/2) + DGAIN*derivative;
 		
 		double motorA, motorB;
-		if (getFrontDistance(data.grid, data.robotWidth) < setPoint) {
-			motorA = -driveSpeed;
-			motorB = driveSpeed;
-		} else if (direction == -1) {
-			motorA = driveSpeed + diff;
-			motorB = driveSpeed - diff;
+		double frontDist = getFrontDistance(data.grid, data.robotWidth);
+		if (frontDist < setPoint) {
+			if (direction == 1) {
+				System.out.println("Too close, turn left");
+				motorA = -driveSpeed/1.4;
+				motorB = driveSpeed/1.4;
+			} else {
+				System.out.println("Too close, turn right");
+				motorA = driveSpeed/1.4;
+				motorB = -driveSpeed/1.4;
+			}
 		} else {
-			motorA = driveSpeed - diff;
-			motorB = driveSpeed + diff;
+			if (direction == -1) {
+				System.out.println("Follow left");
+				motorA = driveSpeed + diff;
+				motorB = driveSpeed - diff;
+			} else {
+				System.out.println("Follow right");
+				motorA = driveSpeed - diff;
+				motorB = driveSpeed + diff;
+			}
 		}
-		
 		sensors.leftDriveMotor.setSpeed(-motorA);
-		sensors.rightDriveMotor.setSpeed(motorB);
+		sensors.rightDriveMotor.setSpeed(-motorB);
 	}
 	
 	double getSideDistance(SparseGrid map, int direction) {
@@ -83,7 +95,7 @@ public class WallFollowState extends State {
 		 * Finds the distance from the front of the robot to a wall.
 		 */
 		double minDist = 24;
-		for (double x = -robotWidth; x < robotWidth; x += map.gridSize) {
+		for (double x = -robotWidth/2; x < robotWidth/2; x += map.gridSize) {
 			double y;
 			for (y = 0; y < 24; y += map.gridSize) {
 				if (map.wallNumbers.contains(map.get(x, y))) {

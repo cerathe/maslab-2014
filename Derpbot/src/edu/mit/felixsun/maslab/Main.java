@@ -83,7 +83,11 @@ class SparseGrid {
 		int xIndex = (int) (x / gridSize);
 		int yIndex = (int) (y / gridSize);
 		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
-		return map.get(coords);
+		if (map.containsKey(coords)){
+			return map.get(coords);
+		} else {
+			return -1;
+		}
 	}
 	
 	public boolean filled(double x, double y) {
@@ -258,13 +262,13 @@ public class Main {
 		Sensors sensors = new Sensors();
 		sensors.ultraRight = new Ultrasonic(30, 29);
 		sensors.ultraLeft = new Ultrasonic(32, 31);
-		sensors.leftDriveMotor = new Cytron(2, 1);
-		sensors.rightDriveMotor = new Cytron(7, 6);
+		sensors.rightDriveMotor = new Cytron(2, 1);
+		sensors.leftDriveMotor = new Cytron(7, 6);
 		DigitalOutput ground1 = new DigitalOutput(0);
 		DigitalOutput ground2 = new DigitalOutput(5);
 		
-		comm.registerDevice(sensors.ultraRight);
 		comm.registerDevice(sensors.ultraLeft);
+		comm.registerDevice(sensors.ultraRight);
 		comm.registerDevice(sensors.leftDriveMotor);
 		comm.registerDevice(sensors.rightDriveMotor);
 		comm.registerDevice(ground1);
@@ -280,8 +284,8 @@ public class Main {
 //			System.out.println(sensors.ultraLeft.getDistance()*45);
 			sonarState.step(data, sensors);
 			if (data.processedImage != null) {
-				data.processedImage = ImageProcessor.drawGrid(data.processedImage.size(), data);
-				cvHandle.updateWindow(cameraPane, data.processedImage);
+				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data);
+				cvHandle.updateWindow(cameraPane, finalMap);
 			}
 			wallFollowState.step(data, sensors);
 			comm.transmit();
