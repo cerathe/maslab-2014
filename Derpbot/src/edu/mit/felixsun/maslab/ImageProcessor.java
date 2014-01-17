@@ -30,8 +30,8 @@ public class ImageProcessor {
 	static int blueUpperH = 120;
 	static int yellowLowerH = 25;
 	static int yellowUpperH = 35;
-	static int lowerS = 100;
-	static int lowerV = 40;
+	static int lowerS = 40;
+	static int lowerV = 80;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
@@ -70,6 +70,15 @@ public class ImageProcessor {
 			Core.inRange(input, new Scalar(0, lowerS, lowerV), upperHSV, part2);
 			Core.bitwise_or(part1, part2, output);
 		}
+		return output;
+	}
+	
+	static Mat findWhite(Mat input) {
+		/*
+		 * Experimental: Finds white blobs.
+		 */
+		Mat output = new Mat();
+		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -305,7 +314,8 @@ public class ImageProcessor {
 		
 		//Filter image by color
         Mat colorMask = new Mat();
-        colorMask = colorFilter(hsvImage, lowerHue, upperHue);
+//        colorMask = colorFilter(hsvImage, lowerHue, upperHue);
+		colorMask = findWhite(hsvImage);
         //dilate and erode - These don't appear to help right now, so let's not do them.
          Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
          Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
