@@ -1,6 +1,9 @@
 package edu.mit.felixsun.maslab;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,7 +46,7 @@ public class ImageProcessor {
     static double MIN_GOOD_AREA = 200;
     	
 	// Camera and world parameters.  All length units in inches.
-	static double wallStripeHeight = 2;
+	static double wallStripeHeight = 4;
 	static double ballDiameter = 2;
     static double VIEWANGLE = 90 * Math.PI / 180;
 	
@@ -113,12 +116,9 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
-//		 processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
-//		 findWallsPoly(topHalf, greenLowerH, greenUpperH, data, 3);
-//		 findWallsPoly(topHalf, yellowLowerH, yellowUpperH, data, 4);
 		findBalls(hsvImage, data);
 		data.grid.removeIslands();
-		// processedImage = drawGrid(hsvImage.size(), data);
+		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -196,99 +196,6 @@ public class ImageProcessor {
 		return processedImage;
 	}
 	
-	static Mat findWalls(Mat hsvImage, cvData data) {
-		/*
-		 * NOT USED RIGHT NOW.
-		 */
-		double scale = 10; // Pixels / inch
-		Mat processedImage = Mat.zeros(hsvImage.size(), CvType.CV_8UC3);
-		// Find all the wall stripes - TODO: make more general.
-		Mat colorMask = colorFilter(hsvImage, blueLowerH, blueUpperH);
-		Mat kernel = Mat.ones(new Size(3, 3), CvType.CV_8U);
-        Imgproc.erode(colorMask, colorMask, kernel, new Point(0, 0), 2);
-        Imgproc.dilate(colorMask, colorMask, kernel, new Point(0, 0), 2);
-		// Calculate heights.
-		Mat heights = new Mat();
-		Core.reduce(colorMask, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-		// Convert heights to distances, and plot walls on a map.
-		SparseGrid grid = new SparseGrid(data.gridSize);
-		for (int i = 0; i < heights.width(); i++) {
-			double thisHeight = heights.get(0, i)[0] / 255;
-			if (thisHeight < 2) {
-				continue;
-			}
-			double distance = distanceConvert(thisHeight, wallStripeHeight);
-			double angle = Math.PI/4*3 - Math.PI/2 * i / heights.width();
-			double wallX = Math.cos(angle)*distance;
-			double wallY = Math.sin(angle)*distance;
-			grid.set(wallX, wallY, 1);	// 1 = generic blue wall.
-		}
-		
-		// Shove new map into data
-		data.grid = grid;
-		
-		// Draw the grid we just made.
-		// Note: potential concurrency problems exist here, since the grid structure is
-		// now shared between the vision and control threads.  However, this next section is
-		// for visualization only, so it's OK if it messes up a little.
-		Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
-		// Oh God, that last line is so terrible.  I miss Python.
-		while (keys.hasNext()) {
-			Entry<Integer, Integer> coords = keys.next();
-			Point tl = new Point(coords.getKey() * grid.gridSize * scale + processedImage.width() / 2, 
-					coords.getValue() * grid.gridSize * scale);
-			Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
-					(coords.getValue() + 1) * grid.gridSize * scale);
-			Core.rectangle(processedImage, tl, br, GREEN);
-		}
-		Imgproc.cvtColor(colorMask, colorMask, Imgproc.COLOR_GRAY2BGR);
-		return processedImage;
-	}
-	
-    //Return the rightmost point in a List<Point>
-    private static int[] rightMostTwo(List<Point> list){
-            int best = 0;
-            int secondBest = 0;
-            for(int i=0; i<list.size(); i++){
-                    if(list.get(i).x>list.get(best).x){
-                            best = i;
-                    }
-                    else{
-                            if(list.get(i).x>list.get(secondBest).x){
-                                    secondBest=i;
-                            }
-                    }
-            }
-            if(list.get(best).y<list.get(secondBest).y){
-                    return new int[]{best,secondBest};
-            }
-            else{
-                    return new int[]{secondBest,best};
-            }
-    }
-    
-    //Return the leftmost point in a List<Point>
-    private static int[] leftMostTwo(List<Point> list){
-            int best = 0;
-            int secondBest = 0;
-            for(int i=0; i<list.size(); i++){
-                    if(list.get(i).x<list.get(best).x){
-                            best = i;
-                    }
-                    else{
-                            if(list.get(i).x<list.get(secondBest).x){
-                                    secondBest=i;
-                            }
-                    }
-            }
-            if(list.get(best).y<list.get(secondBest).y){
-                    return new int[]{best,secondBest};
-            }
-            else{
-                    return new int[]{secondBest,best};
-            }
-    }
-	
     //Linear regression
     private static double[] linReg(double[] x, double[] y){
     	double xybar = 0;
@@ -314,38 +221,51 @@ public class ImageProcessor {
 		
 		//Filter image by color
         Mat colorMask = new Mat();
-//        colorMask = colorFilter(hsvImage, lowerHue, upperHue);
 		colorMask = findWhite(hsvImage);
-        //dilate and erode - These don't appear to help right now, so let's not do them.
-         Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
-         Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)));
-
+        //dilate and erode, to clean up lines a little.
+		Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
+				new Point(0, 0), 1);
+		Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
+				new Point(0, 0), 1);
         
-        //Find the largest connected component
+        //Separate into connected components
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-        List<MatOfPoint> goodContours = new ArrayList<MatOfPoint>();
         Mat hierarchy = new Mat();
         Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-        double biggestArea = 0;
-        int bestBlob = -1;
-        double thisArea = 0;
-        // TODO: Figure out which blobs are walls.
-//        for(int i=0; i<contours.size(); i++){
-//        	if (looksLikeWall(contours.get(i))) {
-//        		
-//        	}
-//                thisArea = Imgproc.boundingRect(contours.get(i)).area();
-//                Rect bounding = Imgproc.boundingRect(contours.get(i));
-//                
-//        }
-        goodContours = contours;
         
-        if (goodContours.size() == 0) {
+        if (contours.size() == 0) {
         	return processedImage;
         }
         SparseGrid grid = data.grid;
         
-        SortedMap<Double, Point> distToPoints = new TreeMap<Double, Point>();
+        // Sort the contours by vertical position.  Use only the lowest contour in each column of the picture.
+        // This can be optimized by memoizing the bounding rectangles.  (Consider doing this if sorting becomes
+        // a bottleneck.)
+        Collections.sort(contours, new Comparator<MatOfPoint>(){
+        	public int compare(MatOfPoint a, MatOfPoint b) {
+        		Rect aRect = Imgproc.boundingRect(a);
+        		Rect bRect = Imgproc.boundingRect(b);
+        		return (bRect.y - bRect.height) - (aRect.y - aRect.height);
+        	}
+        });
+        List<MatOfPoint> goodContours = new ArrayList<MatOfPoint>();
+        boolean[] columnUsed = new boolean[hsvImage.width()];
+        Arrays.fill(columnUsed, false);
+        for (int i=0; i<contours.size(); i++) {
+        	MatOfPoint thisContour = contours.get(i);
+        	Rect contourRect = Imgproc.boundingRect(thisContour);
+        	boolean useMe = false;
+        	for (int column = contourRect.x; column < contourRect.width + contourRect.x; column++) {
+        		if (!columnUsed[column]){
+        			useMe = true;
+        		}
+    			columnUsed[column] = true;
+        	}
+        	if (useMe) {
+        		goodContours.add(thisContour);
+        	}
+        }
+        
         for (int i=0; i<goodContours.size(); i++) {
 	        //Approximate the blob by a coarse polygon
 	        MatOfPoint2f polygon = new MatOfPoint2f();
@@ -368,9 +288,6 @@ public class ImageProcessor {
 	        Imgproc.drawContours(processedImage, oldApproxWall, 0, BLUE, -1);
 	        
 	        /* Figure out heights across the polygon. 
-	        * Also keep the leftmost and rightmost 3 points.
-	        * These points are used to extrapolate 
-	        * via linear fitting the walls on the sides.
 	        */
 	        Mat heights = new Mat();
 			Core.reduce(polygonImage, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
@@ -391,74 +308,6 @@ public class ImageProcessor {
 			}
         }
         grid.removeIslands();
-        // Make distToPoints:
-      	Enumeration<Entry<Integer, Integer>> keys = grid.map.keys();
-        while(keys.hasMoreElements()){
-        	Entry<Integer, Integer> coords = keys.nextElement();
-        	double wallX = grid.gridSize * coords.getKey();
-        	double wallY = grid.gridSize * coords.getValue();
-        	
-	        Point thisPt = new Point(wallX, wallY);
-	        double theta = Math.atan(wallY/wallX)>0? Math.atan(wallY/wallX): Math.PI - Math.abs(Math.atan(wallY/wallX));
-	    	distToPoints.put(theta, thisPt);
-        }
-        // Get the leftmost n points and the rightmost n points.
-        double[] leftWallX = new double[REGRESSION_SIZE];
-        double[] rightWallX = new double[REGRESSION_SIZE];
-        double[] leftWallY = new double[REGRESSION_SIZE];
-        double[] rightWallY = new double[REGRESSION_SIZE];
-        
-        // Not enough points to do regression.  Stop.
-        if (distToPoints.size() < 2*REGRESSION_SIZE) {
-        	return processedImage;
-        }
-        	
-        
-        for (int i = 0; i < REGRESSION_SIZE; i++) {
-        	double leftX = distToPoints.firstKey();
-        	double rightX = distToPoints.lastKey();
-        	Point leftPt = distToPoints.get(leftX);
-        	Point rightPt = distToPoints.get(rightX);
-        	distToPoints.remove(leftX);
-        	distToPoints.remove(rightX);
-        	leftWallX[i] = leftPt.x;
-        	leftWallY[i] = leftPt.y;
-        	rightWallX[i] = rightPt.x;
-        	rightWallY[i] = rightPt.y;
-        }
-        
-        //linear regression
-        double[] leftCoeffs = linReg(leftWallX, leftWallY);
-        double[] rightCoeffs = linReg(rightWallX, rightWallY);
-        double ldist = Math.abs( leftCoeffs[0]/ (Math.sqrt(1 + (leftCoeffs[1] * leftCoeffs[1]))));
-        double rdist = Math.abs( rightCoeffs[0]/ (Math.sqrt(1 + (rightCoeffs[1] * rightCoeffs[1]))));
-        
-        for (double yExtrapolate = leftWallY[0]; yExtrapolate > -10; yExtrapolate -= grid.gridSize) {
-        	double xExtrapolate = (yExtrapolate - leftCoeffs[0]) / leftCoeffs[1];
-        	if (yExtrapolate > leftWallY[0] && grid.filled(xExtrapolate, yExtrapolate)) {
-        		// This means we are extrapolating in the wrong direction, and should stop!
-        		break;
-        	}
-        	//grid.set(xExtrapolate, yExtrapolate, 2);
-        }
-        
-        for (double yExtrapolate = rightWallY[0]; yExtrapolate > -10; yExtrapolate -= grid.gridSize) {
-        	double xExtrapolate = (yExtrapolate - rightCoeffs[0]) / rightCoeffs[1];
-        	if (yExtrapolate > rightWallY[0] && grid.filled(xExtrapolate, yExtrapolate)) {
-        		break;
-        	}
-        	//grid.set(xExtrapolate, yExtrapolate, 2);
-        }
-        
-        double[] output = new double[] {0, 0, 0, 0, 0};
-        double bearingAngle = Math.atan(1/Math.abs(rightCoeffs[1]));
-        output[0] = rdist;
-        output[1] = rightCoeffs[0];//closeSideAngle;
-        output[2] = rightCoeffs[1];//farSideAngle;
-        output[3] = bearingAngle;//>Math.PI? bearingAngle-Math.PI: bearingAngle;
-        output[4] = 1;//onRight? 1:-1;
-        
-        data.wall = output;
         data.grid = grid;
         return processedImage;
         
