@@ -66,10 +66,16 @@ class SparseGrid {
 	public double gridSize; // Inches per grid square
 	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> map;
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
+	double robotX;
+	double robotY;
+	double robotTheta;
 
 	public SparseGrid(double scale) {
 		gridSize = scale;
 		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
+		robotX = 0;
+		robotY = 0;
+		robotTheta = Math.PI/2;
 	}
 	
 	public void set(double x, double y, int value) {
@@ -136,8 +142,7 @@ class cvHandle implements Runnable {
 	/*
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
-	
-	public final int CAM_MODE = 0;
+	public final int CAM_MODE = 1;
 	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
@@ -253,49 +258,49 @@ public class Main {
 		Thread cvThread = new Thread(handle);
 		cvThread.start();
 		
-		State sonarState = new SonarReadState();
-		State wallFollowState = new WallFollowState(-1, -1);
-		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
-		
-		// Start serial communication.
-		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
-		Sensors sensors = new Sensors();
-		sensors.ultraRight = new Ultrasonic(30, 29);
-		sensors.ultraLeft = new Ultrasonic(32, 31);
-		sensors.rightDriveMotor = new Cytron(2, 1);
-		sensors.leftDriveMotor = new Cytron(7, 6);
-		DigitalOutput ground1 = new DigitalOutput(0);
-		DigitalOutput ground2 = new DigitalOutput(5);
-		
-		comm.registerDevice(sensors.ultraLeft);
-		comm.registerDevice(sensors.ultraRight);
-		comm.registerDevice(sensors.leftDriveMotor);
-		comm.registerDevice(sensors.rightDriveMotor);
-		comm.registerDevice(ground1);
-		comm.registerDevice(ground2);
-		comm.initialize();
-		
-		ground1.setValue(false);
-		ground2.setValue(false);
-		comm.transmit();
-		while (true) {
-			cvData data = handle.data;
-			comm.updateSensorData();
-//			System.out.println(sensors.ultraLeft.getDistance()*45);
-			sonarState.step(data, sensors);
-			if (data.processedImage != null) {
-				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data);
-				cvHandle.updateWindow(cameraPane, finalMap);
-			}
-			wallFollowState.step(data, sensors);
-			comm.transmit();
-			
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+//		State sonarState = new SonarReadState();
+//		State wallFollowState = new WallFollowState(-1, -1);
+//		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
+//		
+//		// Start serial communication.
+//		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+//		Sensors sensors = new Sensors();
+//		sensors.ultraRight = new Ultrasonic(30, 29);
+//		sensors.ultraLeft = new Ultrasonic(32, 31);
+//		sensors.rightDriveMotor = new Cytron(2, 1);
+//		sensors.leftDriveMotor = new Cytron(7, 6);
+//		DigitalOutput ground1 = new DigitalOutput(0);
+//		DigitalOutput ground2 = new DigitalOutput(5);
+//		
+//		comm.registerDevice(sensors.ultraLeft);
+//		comm.registerDevice(sensors.ultraRight);
+//		comm.registerDevice(sensors.leftDriveMotor);
+//		comm.registerDevice(sensors.rightDriveMotor);
+//		comm.registerDevice(ground1);
+//		comm.registerDevice(ground2);
+//		comm.initialize();
+//		
+//		ground1.setValue(false);
+//		ground2.setValue(false);
+//		comm.transmit();
+//		while (true) {
+//			cvData data = handle.data;
+//			comm.updateSensorData();
+////			System.out.println(sensors.ultraLeft.getDistance()*45);
+//			sonarState.step(data, sensors);
+//			if (data.processedImage != null) {
+//				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data);
+//				cvHandle.updateWindow(cameraPane, finalMap);
+//			}
+//			wallFollowState.step(data, sensors);
+//			comm.transmit();
+//			
+//			try {
+//				Thread.sleep(10);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//		}
 
 	}
 

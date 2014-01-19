@@ -118,7 +118,7 @@ public class ImageProcessor {
 		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 		findBalls(hsvImage, data);
 		data.grid.removeIslands();
-//		processedImage = drawGrid(hsvImage.size(), data);
+		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -310,7 +310,7 @@ public class ImageProcessor {
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
 	            if(angle<0.75*Math.PI && angle > 0.25*Math.PI){
 		            double wallX = Math.cos(angle)*distance;
-		            double wallY = Math.sin(angle)*distance;
+		            double wallY = Math.sin(angle)*distance + data.robotWidth/2;
 	            	grid.set(wallX, wallY, value);
 	            }
 			}
@@ -322,8 +322,35 @@ public class ImageProcessor {
 	}
 	
 	static Mat drawGrid(Size size, cvData data){
+		/*
+		 * Draws a the grid found in data.grid.
+		 * This will probably be moved to another class soon.
+		 */
 		double scale = 5;
 		SparseGrid grid = data.grid;
+		double offsetX = size.width / 2;
+		double offsetY = 100;
+		class coordsToImgPoint {
+			/*
+			 * Takes in a Point in inches, returns a Point in pixels.
+			 */
+			double offsetX, offsetY, scale;
+			public coordsToImgPoint(double x, double y, double s) {
+				offsetX = x;
+				offsetY = y;
+				scale = s;
+			}
+			Point cvt(Point coords) {
+				return new Point(offsetX + coords.x * scale,
+						offsetY + coords.y * scale);
+			}
+			
+			Point cvt(double x, double y) {
+				return new Point(offsetX + x * scale,
+						offsetY + y * scale);
+			}
+		}
+		coordsToImgPoint converter = new coordsToImgPoint(offsetX, offsetY, scale);
 		double wallDist, bearingAngle, onRight;
 		double[] wall = data.wall;
 		wallDist = wall[0]; bearingAngle = wall[3]; onRight = wall[4];
@@ -333,10 +360,8 @@ public class ImageProcessor {
         
         while (keys.hasNext()) {
             Entry<Integer, Integer> coords = keys.next();
-            Point tl = new Point(coords.getKey() * grid.gridSize * scale + processedImage.width() / 2, 
-                            coords.getValue() * grid.gridSize * scale);
-            Point br = new Point((coords.getKey() + 1) * grid.gridSize * scale + processedImage.width() / 2, 
-                            (coords.getValue() + 1) * grid.gridSize * scale);
+            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
+            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
             double value = grid.map.get(coords);
             switch((int)value){	
             	case 1: Core.rectangle(processedImage, tl, br, BLUE); break;
@@ -358,12 +383,11 @@ public class ImageProcessor {
 //        Core.line(processedImage, p3, p4, GREEN);
         
         // And finally, draw the robot.
-        Point tl = new Point(-5 * grid.gridSize * scale + processedImage.width() / 2, 
-                -5 * grid.gridSize * scale);
-        Point br = new Point(5 * grid.gridSize * scale + processedImage.width() / 2, 
-                5 * grid.gridSize * scale);
-        Core.rectangle(processedImage, tl, br, YELLOW);
-        
+        Point robot = converter.cvt(grid.robotX * grid.gridSize, grid.robotY * grid.gridSize);
+        Core.circle(processedImage, robot, (int) (data.robotWidth/2 * grid.gridSize * scale), YELLOW);
+        Point robotVector = converter.cvt(grid.robotX + data.robotWidth * Math.cos(grid.robotTheta),
+        		grid.robotY + data.robotWidth * Math.sin(grid.robotTheta));
+        Core.line(processedImage, robot, robotVector, YELLOW);
         
         Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 
         for(int i =0; i<processedImage.rows(); i++){
