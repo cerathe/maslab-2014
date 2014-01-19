@@ -118,7 +118,7 @@ public class ImageProcessor {
 		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 		findBalls(hsvImage, data);
 		data.grid.removeIslands();
-		processedImage = drawGrid(hsvImage.size(), data);
+//		processedImage = drawGrid(hsvImage.size(), data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -216,7 +216,7 @@ public class ImageProcessor {
     }
     
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
-		int REGRESSION_SIZE = 10;
+		final int COLUMN_MARGIN = 5;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		
 		//Filter image by color
@@ -255,7 +255,15 @@ public class ImageProcessor {
         	MatOfPoint thisContour = contours.get(i);
         	Rect contourRect = Imgproc.boundingRect(thisContour);
         	boolean useMe = false;
-        	for (int column = contourRect.x; column < contourRect.width + contourRect.x; column++) {
+        	int minColumn = contourRect.x - COLUMN_MARGIN;
+        	if (minColumn < 0) {
+        		minColumn = 0;
+        	}
+        	int maxColumn = contourRect.x + contourRect.width + COLUMN_MARGIN;
+        	if (maxColumn > hsvImage.width()) {
+        		maxColumn = hsvImage.width();
+        	}
+        	for (int column = minColumn; column < maxColumn; column++) {
         		if (!columnUsed[column]){
         			useMe = true;
         		}

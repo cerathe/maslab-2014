@@ -138,7 +138,7 @@ class cvHandle implements Runnable {
 	 */
 	
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = false;
+	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
