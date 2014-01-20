@@ -65,10 +65,18 @@ public class BotClientMap {
 	
 	public static class Pose extends Point{
 		public final double theta;
+		public final double prob;
 		
 		public Pose(double x, double y, double theta) {
 			super(x, y);
 			this.theta = theta;
+			this.prob = 0;
+		}
+		
+		public Pose(double x, double y, double theta, double prob) {
+			super(x, y);
+			this.theta = theta;
+			this.prob = prob;
 		}
 		
 		@Override

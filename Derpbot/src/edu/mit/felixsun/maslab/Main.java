@@ -5,6 +5,8 @@ import java.awt.image.BufferedImage;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
@@ -34,6 +37,7 @@ import org.opencv.highgui.VideoCapture;
 
 import comm.BotClientMap;
 import comm.BotClientMap.Point;
+import comm.BotClientMap.Pose;
 import comm.BotClientMap.Wall;
 import comm.MapleComm;
 import comm.MapleIO;
@@ -413,12 +417,11 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	public static int SPEED = 20;
-	public static double I_GAIN = 0;
-    public static double WALLSPEED = 0.1;
-    public static double I_GAIN_WALL = 0;
-    public static double TOOCLOSE = 10;
-    
+	public final static int PARTICLE_COUNT = 100; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 50;		// How many samples do we keep at the end of each step?
+	public final static double TRAVEL_STEP = 0.5;	// Inches / step
+	public final static double TURN_STEP = 0.1;		// Radians / step
+	
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
 		cvHandle handle = new cvHandle(); // Run the cv stuff.
@@ -428,14 +431,53 @@ public class Main {
 		cvData data = handle.data;
 		BotClientMap map = BotClientMap.getDefaultMap();
 		SparseGrid grid = new SparseGrid(data.gridSize, map);
+		ArrayList<Pose> robotPositions = new ArrayList<Pose>();
+		for (int i=0; i<PARTICLE_COUNT; i++) {
+			robotPositions.add(map.startPose);
+		}
+		double normalization = 0;
 		grid.writeMap();
 		
 		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
+		Random rng = new Random();
 
 		while (true) {
 		data = handle.data;
-		double prob = grid.stateLogProb(data.angles, grid.robotX, grid.robotY, grid.robotTheta);
-		System.out.println(prob);
+		
+		// Update each particle with the expected drift.
+		// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
+		// Update the probability of each particle.
+		for (int i=0; i<PARTICLE_COUNT; i++) {
+			Pose oldPose = robotPositions.get(i);
+			double newX = oldPose.x + rng.nextGaussian()*TRAVEL_STEP;
+			double newY = oldPose.y + rng.nextGaussian()*TRAVEL_STEP;
+			double newTheta = oldPose.theta + rng.nextGaussian()*TURN_STEP;
+			double newProb = oldPose.prob + grid.stateLogProb(data.angles, newX, newY, newTheta) - normalization;
+			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
+		}
+		
+		// Delete the unlikely particles.  Clone the likely particles.
+		class ProbCompare implements Comparator<Pose> {
+			public int compare(Pose a, Pose b) {
+				if (a.prob > b.prob) {
+					return 1;
+				} else if (a.prob < b.prob) {
+					return -1;
+				} else {
+					return 0;
+				}
+			}
+		}
+		Collections.sort(robotPositions, new ProbCompare());
+		for (int i=PRUNED_COUNT; i<PARTICLE_COUNT; i++) {
+			robotPositions.set(i, robotPositions.get(i % PRUNED_COUNT));
+		}
+		Pose bestGuess = robotPositions.get(0);
+		normalization = bestGuess.prob;
+		grid.robotX = bestGuess.x;
+		grid.robotY = bestGuess.y;
+		grid.robotTheta = bestGuess.theta;
+		
 		
 		if (data.processedImage != null) {
 			Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, grid);
