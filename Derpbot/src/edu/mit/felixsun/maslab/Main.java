@@ -205,6 +205,7 @@ class SparseGrid {
 		return gaussian(diff, MEAS_SIGMA);
 	}
 	
+	
 	public void removeIslands() {
 		/*
 		 * Clears any isolated wall blocks.
