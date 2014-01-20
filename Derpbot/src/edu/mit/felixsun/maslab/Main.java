@@ -23,6 +23,7 @@ import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
 import edu.mit.felixsun.maslab.WallFollowState;
 import edu.mit.felixsun.maslab.SonarReadState;
+import edu.mit.felixsun.maslab.DisplayWindow;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -72,7 +73,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = true;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -99,12 +100,12 @@ class cvHandle implements Runnable {
 			width = rawImage.width();
 			height = rawImage.height();
 		}
-		JLabel cameraPane;
-		JLabel opencvPane;
+		DisplayWindow cameraPane;
+		DisplayWindow opencvPane;
 
 		if (SHOW_IMAGES) {
-			cameraPane = createWindow("Camera output", width, height);
-			opencvPane = createWindow("OpenCV output", width, height);
+			cameraPane = new DisplayWindow("Camera output", width, height);
+			opencvPane = new DisplayWindow("OpenCV output", width, height);
 	
 		}
 		
@@ -133,8 +134,8 @@ class cvHandle implements Runnable {
 			
 			// Update the GUI windows
 			if (SHOW_IMAGES) {
-				updateWindow(cameraPane, rawImage);
-				updateWindow(opencvPane, processedImage);
+				cameraPane.updateWindow(rawImage);
+				opencvPane.updateWindow(processedImage);
 			}
 			// Manually garbage collect, because opencv has memory issues :(
 			System.gc();
@@ -148,37 +149,14 @@ class cvHandle implements Runnable {
 			
 		}
 	}
-	
-	public static JLabel createWindow(String name, int width, int height) {    
-        JFrame imageFrame = new JFrame(name);
-        imageFrame.setSize(width, height);
-        imageFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        JLabel imagePane = new JLabel();
-        imagePane.setLayout(new BorderLayout());
-        imageFrame.setContentPane(imagePane);
-        
-        imageFrame.setVisible(true);
-        return imagePane;
-    }
-    
-    public static void updateWindow(JLabel imagePane, Mat mat) {
-    	int w = (int) (mat.size().width);
-    	int h = (int) (mat.size().height);
-    	if (imagePane.getWidth() != w || imagePane.getHeight() != h) {
-    		imagePane.setSize(w, h);
-    	}
-    	BufferedImage bufferedImage = Mat2Image.getImage(mat);
-    	imagePane.setIcon(new ImageIcon(bufferedImage));
-    }
 }
 
 
 public class Main {
-	public final static int PARTICLE_COUNT = 100; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 50;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_STEP = 0.5;	// Inches / step
-	public final static double TURN_STEP = 0.1;		// Radians / step
+	public final static int PARTICLE_COUNT = 10; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
+	public final static double TRAVEL_STEP = 1;		// Inches / step
+	public final static double TURN_STEP = 0.5;		// Radians / step
 	
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
@@ -188,7 +166,7 @@ public class Main {
 		
 		cvData data = handle.data;
 		BotClientMap map = BotClientMap.getDefaultMap();
-		SparseGrid grid = new SparseGrid(data.gridSize, map);
+		SparseGrid grid = new SparseGrid(data.gridSize, map, data.robotWidth);
 		ArrayList<Pose> robotPositions = new ArrayList<Pose>();
 		for (int i=0; i<PARTICLE_COUNT; i++) {
 			robotPositions.add(map.startPose);
@@ -196,57 +174,65 @@ public class Main {
 		double normalization = 0;
 		grid.writeMap();
 		
-		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
+		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		Random rng = new Random();
 
 		while (true) {
-		data = handle.data;
-		
-		// Update each particle with the expected drift.
-		// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
-		// Update the probability of each particle.
-		for (int i=0; i<PARTICLE_COUNT; i++) {
-			Pose oldPose = robotPositions.get(i);
-			double newX = oldPose.x + rng.nextGaussian()*TRAVEL_STEP;
-			double newY = oldPose.y + rng.nextGaussian()*TRAVEL_STEP;
-			double newTheta = oldPose.theta + rng.nextGaussian()*TURN_STEP;
-			double newProb = oldPose.prob + grid.stateLogProb(data.angles, newX, newY, newTheta) - normalization;
-			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
-		}
-		
-		// Delete the unlikely particles.  Clone the likely particles.
-		class ProbCompare implements Comparator<Pose> {
-			public int compare(Pose a, Pose b) {
-				if (a.prob > b.prob) {
-					return 1;
-				} else if (a.prob < b.prob) {
-					return -1;
-				} else {
-					return 0;
+			synchronized(handle.data) {
+				data = handle.data;
+				if (data.angles.size() == 0) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
+				// Update each particle with the expected drift.
+				// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
+				// Update the probability of each particle.
+				for (int i=0; i<PARTICLE_COUNT; i++) {
+					Pose oldPose = robotPositions.get(i);
+					double newX = oldPose.x + rng.nextGaussian()*TRAVEL_STEP;
+					double newY = oldPose.y + rng.nextGaussian()*TRAVEL_STEP;
+					double newTheta = oldPose.theta + rng.nextGaussian()*TURN_STEP;
+					double newProb = oldPose.prob + grid.stateLogProb(data.angles, newX, newY, newTheta) - normalization;
+					robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
+				}
+				
+				// Delete the unlikely particles.  Clone the likely particles.
+				class ProbCompare implements Comparator<Pose> {
+					public int compare(Pose a, Pose b) {
+						if (a.prob > b.prob) {
+							return -1;
+						} else if (a.prob < b.prob) {
+							return 1;
+						} else {
+							return 0;
+						}
+					}
+				}
+				Collections.sort(robotPositions, new ProbCompare());
+				for (int i=PRUNED_COUNT; i<PARTICLE_COUNT; i++) {
+					robotPositions.set(i, robotPositions.get(i % PRUNED_COUNT));
+				}
+				Pose bestGuess = robotPositions.get(0);
+				normalization = bestGuess.prob;
+				System.out.println(normalization);
+				grid.robotX = bestGuess.x;
+				grid.robotY = bestGuess.y;
+				grid.robotTheta = bestGuess.theta;
+			}
+			
+			if (data.processedImage != null) {
+				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, grid);
+				cameraPane.updateWindow(finalMap);
+			}
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
-		Collections.sort(robotPositions, new ProbCompare());
-		for (int i=PRUNED_COUNT; i<PARTICLE_COUNT; i++) {
-			robotPositions.set(i, robotPositions.get(i % PRUNED_COUNT));
-		}
-		Pose bestGuess = robotPositions.get(0);
-		normalization = bestGuess.prob;
-		grid.robotX = bestGuess.x;
-		grid.robotY = bestGuess.y;
-		grid.robotTheta = bestGuess.theta;
-		
-		
-		if (data.processedImage != null) {
-			Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, grid);
-			cvHandle.updateWindow(cameraPane, finalMap);
-		}
-		try {
-			Thread.sleep(10);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
 
 		
 //		State sonarState = new SonarReadState();

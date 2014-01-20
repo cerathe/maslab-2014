@@ -28,10 +28,11 @@ class SparseGrid {
 	double robotTheta;
 	double maxX;
 	double maxY;
+	double width;
 	
-	static double MEAS_SIGMA = 0.1; //Estimated st.dev of distance measurement.
+	static double MEAS_SIGMA = 4; //Estimated st.dev of distance measurement.
 	
-	public SparseGrid(double scale, BotClientMap theMap) {
+	public SparseGrid(double scale, BotClientMap theMap, double robotWidth) {
 		gridSize = scale;
 		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
 		this.theMap = theMap;
@@ -40,6 +41,7 @@ class SparseGrid {
 		robotTheta = Math.PI/2;
 		maxX = 0;
 		maxY = 0;
+		width = robotWidth;
 		this.writeMap();
 	}
 	
@@ -210,10 +212,10 @@ class SparseGrid {
 	
 	public double noisyMeasurement(double viewTheta, double distance, double x, double y, double theta){
 		//Gives a probability of measuring a certain distance at angle viewtheta given the position (x,y,theta).
-		double absTheta = viewTheta + theta;
-		double targetX = x + distance * Math.cos(absTheta);
-		double targetY = y + distance * Math.sin(absTheta);
-		Point closest = closestOccupied(targetX, targetY, 6);
+		double absTheta = viewTheta + theta - Math.PI/2;
+		double targetX = x + width/2 * Math.cos(theta) + distance * Math.cos(absTheta);
+		double targetY = y + width/2 * Math.sin(theta) + distance * Math.sin(absTheta);
+		Point closest = closestOccupied(targetX, targetY, 12);
 		double diff = dist(targetX, targetY, closest.x, closest.y);
 		return Math.log(Math.max(gaussian(diff, MEAS_SIGMA), BASELINE_PROB));
 	}
@@ -228,7 +230,7 @@ class SparseGrid {
 		 */
 		double logProb = 0;
 		for (Map.Entry<Double, Double> entry : measurements.entrySet()) {
-			logProb += noisyMeasurement(entry.getKey(), entry.getValue(), x, y, theta);
+			logProb += noisyMeasurement(entry.getKey(), entry.getValue(), x, y, theta); // / entry.getValue();
 		}
 		return logProb;
 	}

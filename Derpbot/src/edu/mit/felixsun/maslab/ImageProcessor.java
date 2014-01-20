@@ -81,7 +81,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 70, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 60, 255), output);
 		return output;
 	}
 	
@@ -90,7 +90,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (400.0 / pixelHeight) * objectHeight;
+		return (300.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
@@ -219,6 +219,7 @@ public class ImageProcessor {
 		 * Dumps to data.angles a hashmap of angle -> distance to wall at that angle.
 		 */
 		final int COLUMN_MARGIN = 5;
+		final int MIN_WALL_CENTER = hsvImage.height() / 2 - 50;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		HashMap<Double, Double> angles = data.angles;
 		
@@ -256,6 +257,9 @@ public class ImageProcessor {
         for (int i=0; i<contours.size(); i++) {
         	MatOfPoint thisContour = contours.get(i);
         	Rect contourRect = Imgproc.boundingRect(thisContour);
+        	if (contourRect.y + contourRect.height / 2 < MIN_WALL_CENTER) {
+        		continue;
+        	}
         	boolean useMe = false;
         	int minColumn = contourRect.x - COLUMN_MARGIN;
         	if (minColumn < 0) {
@@ -336,14 +340,14 @@ public class ImageProcessor {
 		return distances;
 	}
 	
-	static Mat drawGrid(Size size, cvData data, SparseGrid grid){
+	static Mat drawGrid(Size size, cvData data, SparseGrid grid) {
 		/*
 		 * Draws a the grid found in data.grid.
 		 * This will probably be moved to another class soon.
 		 */
 		double scale = 3;
-		double offsetX = 0;//size.width / 2;
-		double offsetY = 0;//100;
+		double offsetX = 10;
+		double offsetY = 10;
 		class coordsToImgPoint {
 			/*
 			 * Takes in a Point in inches, returns a Point in pixels.
@@ -382,6 +386,21 @@ public class ImageProcessor {
             	default: Core.rectangle(processedImage, tl, br, BLUE); break;
             }
 	    }
+        
+        // Draw the robot's camera stuff.
+        double cameraX = grid.robotX + data.robotWidth/2 * Math.cos(grid.robotTheta);
+        double cameraY = grid.robotY + data.robotWidth/2 * Math.sin(grid.robotTheta);
+        HashMap<Double, Double> angles = data.angles;
+        for (Entry<Double, Double> obs : angles.entrySet()) {
+        	double wallX = cameraX + obs.getValue() * 
+        			Math.cos(grid.robotTheta + obs.getKey() - Math.PI/2);
+        	double wallY = cameraY + obs.getValue() * 
+        			Math.sin(grid.robotTheta + obs.getKey() - Math.PI/2);
+        	Point tl = converter.cvt(wallX, wallY);
+        	Point br = converter.cvt(wallX + grid.gridSize, wallY + grid.gridSize);
+        	Core.rectangle(processedImage, tl, br, YELLOW);
+        	
+        }
 
         double gs = grid.gridSize;
         // And finally, draw the robot.
