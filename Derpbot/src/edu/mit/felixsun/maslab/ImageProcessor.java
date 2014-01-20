@@ -115,11 +115,9 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-//		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
+		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 		findBalls(hsvImage, data);
-		data.grid.removeIslands();
-		processedImage = drawGrid(hsvImage.size(), data);
-		Imgproc.cvtColor(whiteHeights(hsvImage), processedImage, Imgproc.COLOR_GRAY2BGR);
+//		Imgproc.cvtColor(whiteHeights(hsvImage), processedImage, Imgproc.COLOR_GRAY2BGR);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -188,7 +186,7 @@ public class ImageProcessor {
 		}
 		
 		data.offset = offset;
-		data.grid.set(wallX, wallY, 2);
+//		data.grid.set(wallX, wallY, 2);
 		double xx = bestBoundingRect.x;
 		double yy = bestBoundingRect.y;
 		double ww = bestBoundingRect.width;
@@ -217,8 +215,13 @@ public class ImageProcessor {
     }
     
 	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
+		/*
+		 * Locates all the walls the camera can see.
+		 * Dumps to data.angles a hashmap of angle -> distance to wall at that angle.
+		 */
 		final int COLUMN_MARGIN = 5;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
+		HashMap<Double, Double> angles = data.angles;
 		
 		//Filter image by color
         Mat colorMask = new Mat();
@@ -237,7 +240,6 @@ public class ImageProcessor {
         if (contours.size() == 0) {
         	return processedImage;
         }
-        SparseGrid grid = data.grid;
         
         // Sort the contours by vertical position.  Use only the lowest contour in each column of the picture.
         // This can be optimized by memoizing the bounding rectangles.  (Consider doing this if sorting becomes
@@ -310,14 +312,12 @@ public class ImageProcessor {
 	            double distance = distanceConvert(thisHeight, wallStripeHeight);
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
 	            if(angle<0.75*Math.PI && angle > 0.25*Math.PI){
-		            double wallX = Math.cos(angle)*distance;
-		            double wallY = Math.sin(angle)*distance + data.robotWidth/2;
-	            	grid.set(wallX, wallY, value);
+//		            double wallX = Math.cos(angle)*distance;
+//		            double wallY = Math.sin(angle)*distance + data.robotWidth/2;
+	            	angles.put(angle, distance);
 	            }
 			}
         }
-        grid.removeIslands();
-        data.grid = grid;
         
         return processedImage;
         
@@ -331,14 +331,12 @@ public class ImageProcessor {
 		return whiteThings;
 	}
 	
-	static Mat drawGrid(Size size, cvData data){
+	static Mat drawGrid(Size size, cvData data, SparseGrid grid){
 		/*
 		 * Draws a the grid found in data.grid.
 		 * This will probably be moved to another class soon.
 		 */
 		double scale = 3;
-		SparseGrid grid = data.grid;
-		grid.writeMap();
 		double offsetX = 0;//size.width / 2;
 		double offsetY = 0;//100;
 		class coordsToImgPoint {

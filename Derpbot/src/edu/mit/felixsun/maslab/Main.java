@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +33,7 @@ import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
 import comm.BotClientMap;
+import comm.BotClientMap.Point;
 import comm.BotClientMap.Wall;
 import comm.MapleComm;
 import comm.MapleIO;
@@ -44,25 +46,13 @@ class cvData {
 	 * and the rest of the code.
 	 */
 	public double offset;
-	public SparseGrid grid;
 	public double gridSize = 1;		// Inches / square
 	public double robotWidth = 10;	// Inches
-	public double[] wall;
-	public BotClientMap map = BotClientMap.getDefaultMap();
 	public Mat processedImage;
+	HashMap<Double, Double> angles;
 	public cvData() {
 		offset = -2;
-		map = BotClientMap.getDefaultMap();
-		grid = new SparseGrid(gridSize, map);
-		grid.writeMap();
-		wall = new double[] {0,0,0,0,0};
-	}
-	public cvData(BotClientMap mp) {
-		offset = -2;
-		grid = new SparseGrid(gridSize, mp);
-		wall = new double[] {0,0,0,0,0};
-		map = mp;
-		grid.writeMap();
+		angles = new HashMap<Double, Double>();
 	}
 }
 
@@ -80,6 +70,7 @@ class SparseGrid {
 	public double gridSize; // Inches per grid square
 	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> map;
 	public BotClientMap theMap;
+	public double BASELINE_PROB = 0.01;		// Probability that we observe a random (wrong) wall segment.
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
 	double robotX;
 	double robotY;
@@ -93,8 +84,8 @@ class SparseGrid {
 		gridSize = scale;
 		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
 		this.theMap = theMap;
-		robotX = 5;
-		robotY = 5;
+		robotX = 20;
+		robotY = 20;
 		robotTheta = Math.PI/2;
 		maxX = 0;
 		maxY = 0;
@@ -159,31 +150,89 @@ class SparseGrid {
 		return Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
 	}
 	
+	public ArrayList<Point> generateRing(double centerX, double centerY, double radius) {
+		ArrayList<Point> out = new ArrayList<Point>();
+		double x = centerX - radius;
+		double y = centerY - radius;
+		// Go left
+		while (x < centerX + radius) {
+			out.add(new Point(x, y));
+			x += gridSize;
+		}
+		// Go up
+		while (y < centerY + radius) {
+			out.add(new Point(x, y));
+			y += gridSize;
+		}
+		// Go right
+		while (x > centerX - radius) {
+			out.add(new Point(x, y));
+			x -= gridSize;
+		}
+		// Go down
+		while (y > centerY + radius) {
+			out.add(new Point(x, y));
+			y -= gridSize;
+		}
+		return out;
+	}
+	
+	public Point closestOccupied(double x, double y, double maxR) {
+		/*
+		 * Finds the closest occupied point to (x, y) in the map.
+		 * Returns (-1, -1) if no point is found within maxR.
+		 */
+		if (filled(x, y)) {
+			return new Point(x, y);
+		}
+		Point bestSoFar = new Point(-1, -1);
+		double bestDistance = 1000;
+		for(double r = gridSize; r < maxR; r += gridSize){
+			ArrayList<Point> toCheck = generateRing(x, y, r);
+			for (Point thisP : toCheck) {
+				if (filled(thisP.x, thisP.y)) {
+					double thisDist = dist(x, y, thisP.x, thisP.y);
+					if (thisDist < bestDistance) {
+						bestSoFar = thisP;
+						bestDistance = thisDist;
+					}
+				}
+			}
+			if (bestDistance < r) {
+				return bestSoFar;
+			}
+		}
+		return bestSoFar;
+		
+	}
+	
 	public double trueMeas(double viewTheta, double x, double y, double theta){
 		//The true measurement at angle viewtheta given position x,y,theta.
 		double absTheta = viewTheta + theta;
-		double xinc = Math.cos(absTheta);
-		double yinc = Math.sin(absTheta);
+		double xinc = Math.cos(absTheta) * gridSize;
+		double yinc = Math.sin(absTheta) * gridSize;
 		double xtest = x;
 		double ytest = y;
 		double ans = -1;
 		if(absTheta==Math.PI/2 || absTheta == 3*Math.PI/2){
+			// Felix doesn't think this branch will ever get run, but he's leaving it here for now.
 			while(ytest<this.maxY && ytest>0){
 				ytest = ytest + yinc;
 				if(filled(xtest,ytest)){
 					ans = dist(x,y,xtest,ytest);
-					System.out.println(xtest);
+//					System.out.println(xtest);
 					break;
 				}
 			}
 		}
 		else{
+			// If this is slow, add an extra termination condition: a max distance.
 			while(xtest<this.maxX && xtest>0){
 				xtest = xtest + xinc;
 				ytest = ytest + yinc;
 				if(filled(xtest,ytest)){
 					ans = dist(x,y,xtest,ytest);
-					System.out.println(get(xtest,ytest));
+//					System.out.println(get(xtest,ytest));
 					break;
 				}
 			}
@@ -198,11 +247,27 @@ class SparseGrid {
 	
 	public double noisyMeasurement(double viewTheta, double distance, double x, double y, double theta){
 		//Gives a probability of measuring a certain distance at angle viewtheta given the position (x,y,theta).
-		//TODO write this function.
 		double absTheta = viewTheta + theta;
-		double truth = trueMeas(viewTheta, x,y,theta);
-		double diff = Math.abs(distance - truth);
-		return gaussian(diff, MEAS_SIGMA);
+		double targetX = x + distance * Math.cos(absTheta);
+		double targetY = y + distance * Math.sin(absTheta);
+		Point closest = closestOccupied(targetX, targetY, 6);
+		double diff = dist(targetX, targetY, closest.x, closest.y);
+		return Math.log(Math.max(gaussian(diff, MEAS_SIGMA), BASELINE_PROB));
+	}
+	
+	public double stateLogProb(HashMap<Double, Double> measurements, double x, double y, double theta) {
+		/*
+		 * Returns the log probability of measurements being observed, given robot position (x, y, theta)
+		 * Currently, only accounts for walls.
+		 * TODO:
+		 * - Account for field landmarks.
+		 * - Account for forward-facing ultrasound?
+		 */
+		double logProb = 0;
+		for (Map.Entry<Double, Double> entry : measurements.entrySet()) {
+			logProb += noisyMeasurement(entry.getKey(), entry.getValue(), x, y, theta);
+		}
+		return logProb;
 	}
 	
 	
@@ -210,6 +275,7 @@ class SparseGrid {
 		/*
 		 * Clears any isolated wall blocks.
 		 * (Wall blocks with nothing in the 8 positions around them.)
+		 * Probably unnecessary now.
 		 */
 		for (Entry<Integer, Integer> pair : map.keySet()) {
 			int x = pair.getKey();
@@ -251,8 +317,8 @@ class cvHandle implements Runnable {
 	Thread t;
 
 	public void run(){
-		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
-//		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
+//		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;
@@ -358,6 +424,30 @@ public class Main {
 		cvHandle handle = new cvHandle(); // Run the cv stuff.
 		Thread cvThread = new Thread(handle);
 		cvThread.start();
+		
+		cvData data = handle.data;
+		BotClientMap map = BotClientMap.getDefaultMap();
+		SparseGrid grid = new SparseGrid(data.gridSize, map);
+		grid.writeMap();
+		
+		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
+
+		while (true) {
+		data = handle.data;
+		double prob = grid.stateLogProb(data.angles, grid.robotX, grid.robotY, grid.robotTheta);
+		System.out.println(prob);
+		
+		if (data.processedImage != null) {
+			Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, grid);
+			cvHandle.updateWindow(cameraPane, finalMap);
+		}
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
 		
 //		State sonarState = new SonarReadState();
 //		State wallFollowState = new WallFollowState(-1, -1);
