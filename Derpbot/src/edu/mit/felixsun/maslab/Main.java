@@ -25,10 +25,14 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
+import comm.BotClientMap;
+import comm.BotClientMap.Wall;
 import comm.MapleComm;
 import comm.MapleIO;
 import jssc.SerialPort;
@@ -44,11 +48,21 @@ class cvData {
 	public double gridSize = 1;		// Inches / square
 	public double robotWidth = 10;	// Inches
 	public double[] wall;
+	public BotClientMap map = BotClientMap.getDefaultMap();
 	public Mat processedImage;
 	public cvData() {
 		offset = -2;
-		grid = new SparseGrid(gridSize);
+		map = BotClientMap.getDefaultMap();
+		grid = new SparseGrid(gridSize, map);
+		grid.writeMap();
 		wall = new double[] {0,0,0,0,0};
+	}
+	public cvData(BotClientMap mp) {
+		offset = -2;
+		grid = new SparseGrid(gridSize, mp);
+		wall = new double[] {0,0,0,0,0};
+		map = mp;
+		grid.writeMap();
 	}
 }
 
@@ -65,17 +79,55 @@ class SparseGrid {
 	 */
 	public double gridSize; // Inches per grid square
 	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> map;
+	public BotClientMap theMap;
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
 	double robotX;
 	double robotY;
 	double robotTheta;
-
-	public SparseGrid(double scale) {
+	double maxX;
+	double maxY;
+	
+	static double MEAS_SIGMA = 0.1; //Estimated st.dev of distance measurement.
+	
+	public SparseGrid(double scale, BotClientMap theMap) {
 		gridSize = scale;
 		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
-		robotX = 0;
-		robotY = 0;
+		this.theMap = theMap;
+		robotX = 5;
+		robotY = 5;
 		robotTheta = Math.PI/2;
+		maxX = 0;
+		maxY = 0;
+		this.writeMap();
+	}
+	
+	public void writeMap(){
+		double mX = 0;
+		double mY = 0;
+		for(int i = 0; i<theMap.walls.size(); i++){
+			Wall thisWall = theMap.walls.get(i);
+			//Walls are scaled in theMap.gridSize inches
+			//our scale is in this.gridSize inches
+			double scaleFactor = (theMap.gridSize/this.gridSize);
+			int startx = (int) (thisWall.start.x * scaleFactor);
+			int starty = (int) (thisWall.start.y * scaleFactor);
+			int endx = (int) (thisWall.end.x * scaleFactor);
+			int endy = (int) (thisWall.end.y * scaleFactor);
+			if(Math.max(startx, endx)>mX){mX = Math.max(startx,endx);}
+			if(Math.max(starty, endy)>mY){mY = Math.max(starty,endy);}
+			double slope = (endy-starty)/((double)(endx - startx));
+			//Put the wall on the grid
+			if(endx==startx){
+				for(int y = 0; Math.abs(y)<Math.abs(endy-starty); y+= endy<starty? -1: 1){
+					set(endx,y+starty, thisWall.type.ordinal());
+				}
+			}
+			for(int x = 0; Math.abs(x)<Math.abs(endx-startx); x+= endx<startx? -1: 1){
+				set(startx + x,(int)(starty + slope*x), thisWall.type.ordinal());
+			}
+		}
+		this.maxX = mX;
+		this.maxY = mY;
 	}
 	
 	public void set(double x, double y, int value) {
@@ -103,12 +155,60 @@ class SparseGrid {
 		return map.containsKey(coords);
 	}
 	
+	public double dist(double x1, double y1, double x2, double y2){
+		return Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+	}
+	
+	public double trueMeas(double viewTheta, double x, double y, double theta){
+		//The true measurement at angle viewtheta given position x,y,theta.
+		double absTheta = viewTheta + theta;
+		double xinc = Math.cos(absTheta);
+		double yinc = Math.sin(absTheta);
+		double xtest = x;
+		double ytest = y;
+		double ans = -1;
+		if(absTheta==Math.PI/2 || absTheta == 3*Math.PI/2){
+			while(ytest<this.maxY && ytest>0){
+				ytest = ytest + yinc;
+				if(filled(xtest,ytest)){
+					ans = dist(x,y,xtest,ytest);
+					System.out.println(xtest);
+					break;
+				}
+			}
+		}
+		else{
+			while(xtest<this.maxX && xtest>0){
+				xtest = xtest + xinc;
+				ytest = ytest + yinc;
+				if(filled(xtest,ytest)){
+					ans = dist(x,y,xtest,ytest);
+					System.out.println(get(xtest,ytest));
+					break;
+				}
+			}
+		}
+		return ans;
+	}
+	
+	private double gaussian(double x, double s){
+		//normal distribution
+		return Math.exp(-Math.pow(x, 2)/(2*Math.pow(s,2)))/(s*Math.sqrt(2*Math.PI));
+	}
+	
+	public double noisyMeasurement(double viewTheta, double distance, double x, double y, double theta){
+		//Gives a probability of measuring a certain distance at angle viewtheta given the position (x,y,theta).
+		//TODO write this function.
+		double absTheta = viewTheta + theta;
+		double truth = trueMeas(viewTheta, x,y,theta);
+		double diff = Math.abs(distance - truth);
+		return gaussian(diff, MEAS_SIGMA);
+	}
+	
 	public void removeIslands() {
 		/*
 		 * Clears any isolated wall blocks.
 		 * (Wall blocks with nothing in the 8 positions around them.)
-		 * 
-		 * Removes artifacts from the 45- and 135-degree positions by restricting the view angle to the middle 0.4Pi radians. 
 		 */
 		for (Entry<Integer, Integer> pair : map.keySet()) {
 			int x = pair.getKey();
@@ -150,8 +250,8 @@ class cvHandle implements Runnable {
 	Thread t;
 
 	public void run(){
-//		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
-		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
+		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+//		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;

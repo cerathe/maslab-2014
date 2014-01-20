@@ -15,7 +15,7 @@ public class BotClientMap {
 	public ArrayList<Wall> walls;
 	
 	public BotClientMap() {
-		walls = new ArrayList<>();
+		walls = new ArrayList<BotClientMap.Wall>();
 	}
 	
 	public void load(String s) {
@@ -79,7 +79,7 @@ public class BotClientMap {
 	
 	public static class Wall {
 		enum WallTypeShort {N, O, S, R};
-		enum WallType {NORMAL, OPPONENT, SILO, REACTOR};
+		public enum WallType {NORMAL, OPPONENT, SILO, REACTOR};
 		
 		public final WallType type;
 		public final Point start;
