@@ -323,7 +323,7 @@ public class ImageProcessor {
         
 	}
 	
-	static double[] whiteHeights(Mat input){
+	static Mat whiteHeights(Mat input, cvData data){
 		//Get height of white things across image
 		Mat whiteThings = findWhite(input);
         Mat heights = new Mat();
@@ -333,8 +333,8 @@ public class ImageProcessor {
 		for(int i=0; i<len; i++){
 			distances[i] = distanceConvert(heights.get(0, i)[0], wallStripeHeight);
 		}
-		
-		return distances;
+		data.wallHeights = distances;
+		return whiteThings;
 	}
 	
 	static Mat drawGrid(Size size, cvData data){

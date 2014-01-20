@@ -149,6 +149,7 @@ public class SparseGrid {
 		/*
 		 * Measuring likelihood of position x given measurement m: We have:
 		 * p(m|x) = p(x|m)*p(m)/p(x)
+		 * Assume Gaussian noise about the true measurement
 		 * Make naive assumption that each m is equally likely
 		 * and each candidate position x is equally likely 
 		 * 		^ may want to change the prior to be weighted in direction of motion

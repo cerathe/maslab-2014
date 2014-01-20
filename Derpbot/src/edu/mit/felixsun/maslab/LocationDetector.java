@@ -36,7 +36,7 @@ public class LocationDetector {
 	 */
 	
 	
-	
+	//Comparator to order poses by likelihood given measurement.
 	class PoseComparator<Pose> implements Comparator<Pose>{
 		public double[] meas;
 		public cvData data;
