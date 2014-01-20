@@ -119,6 +119,7 @@ public class ImageProcessor {
 		findBalls(hsvImage, data);
 		data.grid.removeIslands();
 		processedImage = drawGrid(hsvImage.size(), data);
+		Imgproc.cvtColor(whiteHeights(hsvImage), processedImage, Imgproc.COLOR_GRAY2BGR);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -320,6 +321,14 @@ public class ImageProcessor {
         
         return processedImage;
         
+	}
+	
+	static Mat whiteHeights(Mat input){
+		//Get height of white things across image
+		Mat whiteThings = findWhite(input);
+        Mat heights = new Mat();
+		Core.reduce(whiteThings, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
+		return whiteThings;
 	}
 	
 	static Mat drawGrid(Size size, cvData data){
