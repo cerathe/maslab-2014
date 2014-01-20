@@ -32,6 +32,7 @@ import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
 import comm.BotClientMap;
+import comm.BotClientMap.Pose;
 import comm.BotClientMap.Wall;
 import comm.MapleComm;
 import comm.MapleIO;
@@ -191,18 +192,44 @@ class SparseGrid {
 		return ans;
 	}
 	
+	public double[] expMeas(Pose pose, double[] measurements){
+		//Expected measurement given the pose (and the real measurements for size)
+		int size = measurements.length;
+		double[] output = new double[size];
+		for(int i=0; i<size; i++){
+			double theta = ImageProcessor.angularPosition(i, size) - Math.PI/2;
+			double reality = trueMeas(theta,pose.x,pose.y,pose.theta);
+			output[i] = reality;
+		}
+		return output;
+	}
+	
 	private double gaussian(double x, double s){
 		//normal distribution
 		return Math.exp(-Math.pow(x, 2)/(2*Math.pow(s,2)))/(s*Math.sqrt(2*Math.PI));
 	}
 	
-	public double noisyMeasurement(double viewTheta, double distance, double x, double y, double theta){
-		//Gives a probability of measuring a certain distance at angle viewtheta given the position (x,y,theta).
-		//TODO write this function.
-		double absTheta = viewTheta + theta;
-		double truth = trueMeas(viewTheta, x,y,theta);
-		double diff = Math.abs(distance - truth);
-		return gaussian(diff, MEAS_SIGMA);
+	public double measLikelihood(Pose pose, double[] measurements){
+		/*
+		 * Measuring likelihood of position x given measurement m: We have:
+		 * p(m|x) = p(x|m)*p(m)/p(x)
+		 * Make naive assumption that each m is equally likely
+		 * and each candidate position x is equally likely 
+		 * 		^ may want to change the prior to be weighted in direction of motion
+		 * 		but this is complicated.
+		 * then p(m|x) \propto p(x|m). So comparing p(m|x) will give us which positions
+		 * are more likely
+		 */
+		double[] reality = expMeas(pose, measurements);
+		double output=1;
+		double diff;
+		for(int i=0; i<reality.length; i++){
+			diff = Math.abs(measurements[i]-reality[i]);
+			output = output * (gaussian(diff,MEAS_SIGMA));
+		}
+		
+		return output;
+		
 	}
 	
 	
