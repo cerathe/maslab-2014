@@ -117,7 +117,6 @@ public class ImageProcessor {
 
 		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
 		findBalls(hsvImage, data);
-//		Imgproc.cvtColor(whiteHeights(hsvImage), processedImage, Imgproc.COLOR_GRAY2BGR);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -323,12 +322,18 @@ public class ImageProcessor {
         
 	}
 	
-	static Mat whiteHeights(Mat input){
+	static double[] whiteHeights(Mat input){
 		//Get height of white things across image
 		Mat whiteThings = findWhite(input);
         Mat heights = new Mat();
 		Core.reduce(whiteThings, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-		return whiteThings;
+		int len = (int) heights.size().width;
+		double[] distances = new double[len];
+		for(int i=0; i<len; i++){
+			distances[i] = distanceConvert(heights.get(0, i)[0], wallStripeHeight);
+		}
+		
+		return distances;
 	}
 	
 	static Mat drawGrid(Size size, cvData data, SparseGrid grid){
