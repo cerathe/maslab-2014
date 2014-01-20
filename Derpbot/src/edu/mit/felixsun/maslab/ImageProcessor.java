@@ -81,7 +81,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 70, 255), output);
 		return output;
 	}
 	
@@ -90,7 +90,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (450.0 / pixelHeight) * objectHeight;
+		return (400.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){

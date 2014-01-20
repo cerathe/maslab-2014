@@ -309,7 +309,7 @@ class cvHandle implements Runnable {
 	/*
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
-	public final int CAM_MODE = 1;
+	public final int CAM_MODE = 0;
 	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
