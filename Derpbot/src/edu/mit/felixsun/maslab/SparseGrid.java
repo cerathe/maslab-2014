@@ -23,12 +23,14 @@ class SparseGrid {
 	public BotClientMap theMap;
 	public double BASELINE_PROB = 0.01;		// Probability that we observe a random (wrong) wall segment.
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
+	List<SimpleEntry<Integer,Integer>> voidArea = new ArrayList<SimpleEntry<Integer,Integer>>();
 	double robotX;
 	double robotY;
 	double robotTheta;
 	double maxX;
 	double maxY;
 	double width;
+	int voidWidth; //clearance from the walls in grid spaces
 	
 	static double MEAS_SIGMA = 4; //Estimated st.dev of distance measurement.
 	
@@ -42,6 +44,7 @@ class SparseGrid {
 		maxX = 0;
 		maxY = 0;
 		width = robotWidth;
+		voidWidth = 4;
 		this.writeMap();
 	}
 	
@@ -75,6 +78,22 @@ class SparseGrid {
 	}
 	
 	public void set(double x, double y, int value) {
+		int xIndex = (int) (x / gridSize);
+		int yIndex = (int) (y / gridSize);
+		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
+		for(int i = -voidWidth; i<voidWidth+1; i++){
+			for(int j = -voidWidth; j<voidWidth+1; j++){
+				voidArea.add(new SimpleEntry<Integer,Integer>(xIndex+i, yIndex+j));
+			}
+		}
+		map.put(coords, value);
+	}
+	
+	/*
+	 * Important: safeSet does not add to the void area. 
+	 * set creates a void area of voidWidth around any points added.
+	 */
+	public void safeSet(double x, double y, int value) {
 		int xIndex = (int) (x / gridSize);
 		int yIndex = (int) (y / gridSize);
 		SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(xIndex, yIndex);
@@ -289,6 +308,42 @@ class SparseGrid {
 				map.remove(pair);
 			}
 		}
+	}
+	public boolean allowedSpace(Entry<Integer, Integer> pt){
+		boolean allowed = true;
+		for(int i=0; i<voidArea.size(); i++){
+			if(voidArea.get(i).equals(pt)){
+				allowed = false;
+			}
+		}
+		return allowed;
+	}
+	
+	public boolean allowedSpace(int x, int y){
+		Entry<Integer, Integer>pt = new SimpleEntry<Integer, Integer>(x,y);
+		boolean allowed = true;
+		for(int i=0; i<voidArea.size(); i++){
+			if(voidArea.get(i).equals(pt)){
+				allowed = false;
+			}
+		}
+		return allowed;
+	}
+	
+	public List<SimpleEntry<Integer, Integer>> getNeighbors(SimpleEntry<Integer, Integer> pt){
+		List<SimpleEntry<Integer, Integer>> output = new ArrayList<SimpleEntry<Integer, Integer>>();
+		int x = pt.getKey();
+		int y = pt.getValue();
+		for(int i=-1; i<2; i++){
+			for(int j=-1; j<2; j++){
+				if(i!=0 && j!=0){
+					if(allowedSpace(x+i,y+j)){
+						output.add(new SimpleEntry<Integer, Integer>(x+i, y+j));
+					}
+				}
+			}
+		}
+		return output;
 	}
 
 }

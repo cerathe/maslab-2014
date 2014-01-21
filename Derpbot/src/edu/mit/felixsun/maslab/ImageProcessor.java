@@ -387,6 +387,14 @@ public class ImageProcessor {
             }
 	    }
         
+        //Draw the void area
+        for(int i=0; i<grid.voidArea.size(); i++){
+        	Entry<Integer, Integer> coords = grid.voidArea.get(i);
+            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
+            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
+            Core.rectangle(processedImage, tl, br, YELLOW);
+        }
+        
         // Draw the robot's camera stuff.
         double cameraX = grid.robotX + data.robotWidth/2 * Math.cos(grid.robotTheta);
         double cameraY = grid.robotY + data.robotWidth/2 * Math.sin(grid.robotTheta);
