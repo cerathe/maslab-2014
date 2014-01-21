@@ -81,7 +81,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 60, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 50, 255), output);
 		return output;
 	}
 	
@@ -90,11 +90,13 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (300.0 / pixelHeight) * objectHeight;
+		return (350.0 / pixelHeight) * objectHeight;
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
-		return (windowWidth - xpos)/windowWidth *VIEWANGLE + (Math.PI - VIEWANGLE)/2; 
+		double ALPHA = 1;
+		double ratio = (windowWidth - 2*xpos)/windowWidth;
+		return Math.PI / 2 + (ALPHA * ratio - (1 - ALPHA) * Math.pow(ratio, 3)) * Math.PI / 4; 
 		
 	}
 	// Input: an image from the camera, an empty mat to store an output image (for
@@ -308,7 +310,7 @@ public class ImageProcessor {
 			for (int j = 0; j < heights.width(); j++) {
 				
 	            double thisHeight = heights.get(0, j)[0] / 255;
-	            if (thisHeight < 2) {
+	            if (thisHeight < 10) {
 	                    continue;
 	            }
 	            
@@ -387,13 +389,13 @@ public class ImageProcessor {
             }
 	    }
         
-        //Draw the void area
-        for(int i=0; i<grid.voidArea.size(); i++){
-        	Entry<Integer, Integer> coords = grid.voidArea.get(i);
-            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
-            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
-            Core.rectangle(processedImage, tl, br, YELLOW);
-        }
+//        //Draw the void area
+//        for(int i=0; i<grid.voidArea.size(); i++){
+//        	Entry<Integer, Integer> coords = grid.voidArea.get(i);
+//            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
+//            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
+//            Core.rectangle(processedImage, tl, br, YELLOW);
+//        }
         
         // Draw the robot's camera stuff.
         double cameraX = grid.robotX + data.robotWidth/2 * Math.cos(grid.robotTheta);

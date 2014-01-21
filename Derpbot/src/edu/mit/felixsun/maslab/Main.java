@@ -18,6 +18,7 @@ import java.util.Random;
 
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
+import devices.sensors.Encoder;
 import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -62,8 +63,8 @@ class cvData {
 }
 
 class Sensors {
-	public Ultrasonic ultraLeft;
-	public Ultrasonic ultraRight;
+	public Encoder leftEncoder;
+	public Encoder rightEncoder;
 	public Cytron leftDriveMotor;
 	public Cytron rightDriveMotor;
 }
@@ -73,7 +74,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = false;
+	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -89,7 +90,7 @@ class cvHandle implements Runnable {
 		
 		if (CAM_MODE == 0){
 			// Setup the camera
-			camera.open(1);
+			camera.open(0);
 			
 			// Create GUI windows to display camera output and OpenCV output
 			width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -153,10 +154,6 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	public final static int PARTICLE_COUNT = 10; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_STEP = 1;		// Inches / step
-	public final static double TURN_STEP = 0.5;		// Radians / step
 	
 	public static void main(String[] args) {
 		// Just a testing framework for the computer vision stuff.
@@ -165,120 +162,52 @@ public class Main {
 		cvThread.start();
 		
 		cvData data = handle.data;
-		BotClientMap map = BotClientMap.getDefaultMap();
-		SparseGrid grid = new SparseGrid(data.gridSize, map, data.robotWidth);
-		ArrayList<Pose> robotPositions = new ArrayList<Pose>();
-		for (int i=0; i<PARTICLE_COUNT; i++) {
-			robotPositions.add(map.startPose);
-		}
-		double normalization = 0;
-		grid.writeMap();
+		Localization localization = new Localization(data);
 		
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
-		Random rng = new Random();
+		
+		// Start serial communication.
+		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+		Sensors sensors = new Sensors();
+		sensors.rightDriveMotor = new Cytron(2, 1);
+		sensors.leftDriveMotor = new Cytron(7, 6);
+		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
+		sensors.leftEncoder = new Encoder(29, 30);
+		sensors.rightEncoder = new Encoder(31, 32);
+		DigitalOutput ground1 = new DigitalOutput(0);
+		DigitalOutput ground2 = new DigitalOutput(5);
+		
+		comm.registerDevice(sensors.leftDriveMotor);
+		comm.registerDevice(sensors.rightDriveMotor);
+		comm.registerDevice(sensors.leftEncoder);
+		comm.registerDevice(sensors.rightEncoder);
+		comm.registerDevice(ground1);
+		comm.registerDevice(ground2);
+		comm.initialize();
+		
+		ground1.setValue(false);
+		ground2.setValue(false);
+		comm.transmit();
 
 		while (true) {
+			comm.updateSensorData();
 			synchronized(handle.data) {
 				data = handle.data;
-				if (data.angles.size() == 0) {
-					try {
-						Thread.sleep(10);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-				// Update each particle with the expected drift.
-				// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
-				// Update the probability of each particle.
-				for (int i=0; i<PARTICLE_COUNT; i++) {
-					Pose oldPose = robotPositions.get(i);
-					double newX = oldPose.x + rng.nextGaussian()*TRAVEL_STEP;
-					double newY = oldPose.y + rng.nextGaussian()*TRAVEL_STEP;
-					double newTheta = oldPose.theta + rng.nextGaussian()*TURN_STEP;
-					double newProb = oldPose.prob + grid.stateLogProb(data.angles, newX, newY, newTheta) - normalization;
-					robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
-				}
-				
-				// Delete the unlikely particles.  Clone the likely particles.
-				class ProbCompare implements Comparator<Pose> {
-					public int compare(Pose a, Pose b) {
-						if (a.prob > b.prob) {
-							return -1;
-						} else if (a.prob < b.prob) {
-							return 1;
-						} else {
-							return 0;
-						}
-					}
-				}
-				Collections.sort(robotPositions, new ProbCompare());
-				for (int i=PRUNED_COUNT; i<PARTICLE_COUNT; i++) {
-					robotPositions.set(i, robotPositions.get(i % PRUNED_COUNT));
-				}
-				Pose bestGuess = robotPositions.get(0);
-				normalization = bestGuess.prob;
-				System.out.println(normalization);
-				grid.robotX = bestGuess.x;
-				grid.robotY = bestGuess.y;
-				grid.robotTheta = bestGuess.theta;
+				localization.update(data, sensors);
 			}
-			
+
 			if (data.processedImage != null) {
-				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, grid);
+				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, localization.grid);
 				cameraPane.updateWindow(finalMap);
 			}
+			
+			comm.transmit();
+			
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-
-		
-//		State sonarState = new SonarReadState();
-//		State wallFollowState = new WallFollowState(-1, -1);
-//		JLabel cameraPane = cvHandle.createWindow("Derp", 600, 600);
-//		
-//		// Start serial communication.
-//		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
-//		Sensors sensors = new Sensors();
-//		sensors.ultraRight = new Ultrasonic(30, 29);
-//		sensors.ultraLeft = new Ultrasonic(32, 31);
-//		sensors.rightDriveMotor = new Cytron(2, 1);
-//		sensors.leftDriveMotor = new Cytron(7, 6);
-//		DigitalOutput ground1 = new DigitalOutput(0);
-//		DigitalOutput ground2 = new DigitalOutput(5);
-//		
-//		comm.registerDevice(sensors.ultraLeft);
-//		comm.registerDevice(sensors.ultraRight);
-//		comm.registerDevice(sensors.leftDriveMotor);
-//		comm.registerDevice(sensors.rightDriveMotor);
-//		comm.registerDevice(ground1);
-//		comm.registerDevice(ground2);
-//		comm.initialize();
-//		
-//		ground1.setValue(false);
-//		ground2.setValue(false);
-//		comm.transmit();
-//		while (true) {
-//			cvData data = handle.data;
-//			comm.updateSensorData();
-////			System.out.println(sensors.ultraLeft.getDistance()*45);
-//			sonarState.step(data, sensors);
-//			if (data.processedImage != null) {
-//				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data);
-//				cvHandle.updateWindow(cameraPane, finalMap);
-//			}
-//			wallFollowState.step(data, sensors);
-//			comm.transmit();
-//			
-//			try {
-//				Thread.sleep(10);
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
-
 	}
-
 }
