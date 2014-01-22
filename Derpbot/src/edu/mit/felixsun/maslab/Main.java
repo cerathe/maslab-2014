@@ -81,8 +81,8 @@ class cvHandle implements Runnable {
 	/*
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
-	public final int CAM_MODE = 1;
-	public final boolean SHOW_IMAGES = true;
+	public final int CAM_MODE = 0;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -98,7 +98,7 @@ class cvHandle implements Runnable {
 		
 		if (CAM_MODE == 0){
 			// Setup the camera
-			camera.open(0);
+			camera.open(1);
 			
 			// Create GUI windows to display camera output and OpenCV output
 			width = (int) (camera.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
@@ -175,41 +175,41 @@ public class Main {
 		
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
-//		// Start serial communication.
-//		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
-//		Sensors sensors = new Sensors();
-//		sensors.rightDriveMotor = new Cytron(2, 1);
-//		sensors.leftDriveMotor = new Cytron(7, 6);
-//		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
-//		sensors.leftEncoder = new Encoder(29, 30);
-//		sensors.rightEncoder = new Encoder(31, 32);
-//		DigitalOutput ground1 = new DigitalOutput(0);
-//		DigitalOutput ground2 = new DigitalOutput(5);
-//		
+		// Start serial communication.
+		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+		Sensors sensors = new Sensors();
+		sensors.rightDriveMotor = new Cytron(2, 1);
+		sensors.leftDriveMotor = new Cytron(7, 6);
+		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
+		sensors.leftEncoder = new Encoder(29, 30);
+		sensors.rightEncoder = new Encoder(31, 32);
+		DigitalOutput ground1 = new DigitalOutput(0);
+		DigitalOutput ground2 = new DigitalOutput(5);
+		
 
-//		comm.registerDevice(sensors.leftDriveMotor);
-//		comm.registerDevice(sensors.rightDriveMotor);
-//		comm.registerDevice(sensors.leftEncoder);
-//		comm.registerDevice(sensors.rightEncoder);
-//		comm.registerDevice(ground1);
-//		comm.registerDevice(ground2);
-//		comm.initialize();
-//		
-//		ground1.setValue(false);
-//		ground2.setValue(false);
+		comm.registerDevice(sensors.leftDriveMotor);
+		comm.registerDevice(sensors.rightDriveMotor);
+		comm.registerDevice(sensors.leftEncoder);
+		comm.registerDevice(sensors.rightEncoder);
+		comm.registerDevice(ground1);
+		comm.registerDevice(ground2);
+		comm.initialize();
+		
+		ground1.setValue(false);
+		ground2.setValue(false);
 
-//		comm.transmit();
+		comm.transmit();
 
 		while (true) {
-//			comm.updateSensorData();
+			comm.updateSensorData();
 			synchronized(handle.data) {
 				data = handle.data;
 				Iterator<Entry<Double, Double>> iterBall = data.landmarks.keySet().iterator();
 				while (iterBall.hasNext()) {
 					Entry<Double, Double> thisBall = iterBall.next();
-					System.out.format("%f %f \n", thisBall.getKey(), thisBall.getValue());
+//					System.out.format("%f %f \n", thisBall.getKey(), thisBall.getValue());
 				}
-//				localization.update(data, sensors);
+				localization.update(data, sensors);
 			}
 
 			if (data.processedImage != null) {
@@ -217,7 +217,7 @@ public class Main {
 				cameraPane.updateWindow(finalMap);
 			}
 			
-//			comm.transmit();
+			comm.transmit();
 			
 			try {
 				Thread.sleep(10);

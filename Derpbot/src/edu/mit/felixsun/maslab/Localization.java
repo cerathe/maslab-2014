@@ -82,7 +82,7 @@ public class Localization {
 		}
 		Pose bestGuess = robotPositions.get(0);
 		normalization = bestGuess.prob;
-		System.out.println(normalization);
+//		System.out.println(normalization);
 		grid.robotX = bestGuess.x;
 		grid.robotY = bestGuess.y;
 		grid.robotTheta = bestGuess.theta;
