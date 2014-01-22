@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,7 +28,7 @@ class SparseGrid {
 	public double BASELINE_PROB = 0.0001;		// Probability that we observe a random (wrong) wall segment.
 	public double MAX_ERROR_RADIUS = 18;		// The farthest out we search, when looking for the closest wall.
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
-	List<SimpleEntry<Integer,Integer>> voidArea = new ArrayList<SimpleEntry<Integer,Integer>>();
+	Set<SimpleEntry<Integer,Integer>> voidArea = new HashSet<SimpleEntry<Integer,Integer>>();
 	double robotX;
 	double robotY;
 	double robotTheta;
@@ -46,7 +47,7 @@ class SparseGrid {
 		maxX = 0;
 		maxY = 0;
 		width = robotWidth;
-		voidWidth = 4;
+		voidWidth = 1;
 		this.writeMap();
 		this.preprocessErrorDistances();
 	}
@@ -308,10 +309,8 @@ class SparseGrid {
 	}
 	public boolean allowedSpace(Entry<Integer, Integer> pt){
 		boolean allowed = true;
-		for(int i=0; i<voidArea.size(); i++){
-			if(voidArea.get(i).equals(pt)){
-				allowed = false;
-			}
+		if(voidArea.contains(pt)){
+			allowed = false;
 		}
 		return allowed;
 	}
@@ -319,8 +318,10 @@ class SparseGrid {
 	public boolean allowedSpace(int x, int y){
 		Entry<Integer, Integer>pt = new SimpleEntry<Integer, Integer>(x,y);
 		boolean allowed = true;
-		for(int i=0; i<voidArea.size(); i++){
-			if(voidArea.get(i).equals(pt)){
+		Iterator<SimpleEntry<Integer,Integer>> it = voidArea.iterator();
+		while(it.hasNext()){
+			SimpleEntry<Integer,Integer> se = it.next();
+			if(se.equals(pt)){
 				allowed = false;
 			}
 		}
