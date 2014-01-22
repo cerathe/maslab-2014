@@ -25,8 +25,8 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ImageProcessor {
-	static int greenLowerH = 40;
-	static int greenUpperH = 80;
+	static int greenLowerH = 50;
+	static int greenUpperH = 70;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
@@ -107,18 +107,13 @@ public class ImageProcessor {
 		Mat processedImage = Mat.zeros(new Size(500,500), rawImage.type());
 		// Convert to HSV
 		Mat hsvImage= new Mat();
-		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);
-		// We will only see walls on the top half of our image.
-		// Actually, our sample images don't reflect that right now.
-		Rect roi = new Rect(0, 0, hsvImage.width(), hsvImage.height());	// Should be height/2
-		Mat topHalf = new Mat(hsvImage, roi);
-		
+		Imgproc.cvtColor(rawImage, hsvImage, Imgproc.COLOR_BGR2HSV);		
 		// Run each sub-processor in succession.
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-		processedImage = findWallsPoly(topHalf, blueLowerH, blueUpperH, data, 1);
-		findBalls(hsvImage, data);
+		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
+		processedImage = findBalls(hsvImage, data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -126,10 +121,11 @@ public class ImageProcessor {
 
 	
 	static Mat findBalls(Mat hsvImage, cvData data) {
-		// Find balls - green for now.
-		// Arbitrary colors coming soon.
-		Mat colorMask = colorFilter(hsvImage, redLowerH, redUpperH);
-		
+		// Find balls - both red and green in one shot.
+		Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
+		Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+		Mat colorMask = new Mat();
+		Core.add(redMask, greenMask, colorMask);
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat hierarchy = new Mat();
@@ -137,7 +133,7 @@ public class ImageProcessor {
 		// Look for the "best" blob
 		// The best blob is the largest one that is also
 		// - Roughly square / circular
-		// = Filled enough
+		// - Filled enough
 		int bestBlob = -1;
 		Rect bestBoundingRect = new Rect();
 		double bestArea = 0;
@@ -155,7 +151,7 @@ public class ImageProcessor {
 				continue;
 			}
 			// If we get this far, we are good.
-			if (Imgproc.contourArea(contours.get(i)) > bestArea){
+			if (blobArea > bestArea){
 				bestBlob = i;
 				bestArea = blobArea;
 				bestBoundingRect = boundingRect;
@@ -165,34 +161,23 @@ public class ImageProcessor {
 		Mat processedImage = new Mat();
 		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
 		
-		//Put the ball on the grid
+		// If we didn't find a ball, just stop now.
+		if (bestBlob == -1) {
+			return processedImage;
+		}
+		
+		// Draw the ball on processedImage.
+		Core.rectangle(processedImage, bestBoundingRect.tl(), bestBoundingRect.br(), GREEN);
+		
+		//Put the ball in the output data.
 		double approxDiam = Math.sqrt(bestArea);
 		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
 		double distance = distanceConvert(approxDiam, ballDiameter);
-		double wallX = Math.cos(angularPos)*distance;
-		double wallY = Math.sin(angularPos)*distance;
-
-		
-		// How far off the center of the screen is the ball?
-		double offset;
-		if (bestBlob == -1) {
-			// Actually, we couldn't even find the ball.  Report this.
-			offset = -2;
-		} else {
-			// Offset:
-			// -1 means all the way to the left
-			// 1 means all the way to the right
-			// 0 means centered
-			offset = 1.0 * (bestBoundingRect.x + bestBoundingRect.width / 2 - hsvImage.width() / 2) / hsvImage.width();
+		Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);
+		synchronized(data) {
+			data.landmarks.put(polarLoc, 1);
 		}
-		
-		data.offset = offset;
-//		data.grid.set(wallX, wallY, 2);
-		double xx = bestBoundingRect.x;
-		double yy = bestBoundingRect.y;
-		double ww = bestBoundingRect.width;
-		double hh = bestBoundingRect.height;
-		Core.line(processedImage, new Point(xx,yy), new Point(xx + ww, yy+hh), RED);
+
 		return processedImage;
 	}
 	
