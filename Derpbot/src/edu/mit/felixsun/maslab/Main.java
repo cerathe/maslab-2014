@@ -73,7 +73,7 @@ class cvHandle implements Runnable {
 	/*
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
-	public final int CAM_MODE = 0;
+	public final int CAM_MODE = 1;
 	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
@@ -81,8 +81,8 @@ class cvHandle implements Runnable {
 	Thread t;
 
 	public void run(){
-//		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
-		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
+		String FILENAME = new String("/Users/vipul/git/maslab-2014/Derpbot/src/edu/mit/felixsun/maslab/corner3.jpg");
+//		String FILENAME = new String("C:\\Users\\Felix\\Documents\\maslab\\walls.png");
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture camera = new VideoCapture();
 		Mat rawImage;
@@ -163,11 +163,12 @@ public class Main {
 		
 		cvData data = handle.data;
 		Localization localization = new Localization(data);
+		Navigation navigation = new Navigation(localization);
 		
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
 		// Start serial communication.
-		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+//		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
 		Sensors sensors = new Sensors();
 		sensors.rightDriveMotor = new Cytron(2, 1);
 		sensors.leftDriveMotor = new Cytron(7, 6);
@@ -177,23 +178,24 @@ public class Main {
 		DigitalOutput ground1 = new DigitalOutput(0);
 		DigitalOutput ground2 = new DigitalOutput(5);
 		
-		comm.registerDevice(sensors.leftDriveMotor);
-		comm.registerDevice(sensors.rightDriveMotor);
-		comm.registerDevice(sensors.leftEncoder);
-		comm.registerDevice(sensors.rightEncoder);
-		comm.registerDevice(ground1);
-		comm.registerDevice(ground2);
-		comm.initialize();
+//		comm.registerDevice(sensors.leftDriveMotor);
+//		comm.registerDevice(sensors.rightDriveMotor);
+//		comm.registerDevice(sensors.leftEncoder);
+//		comm.registerDevice(sensors.rightEncoder);
+//		comm.registerDevice(ground1);
+//		comm.registerDevice(ground2);
+//		comm.initialize();
 		
 		ground1.setValue(false);
 		ground2.setValue(false);
-		comm.transmit();
+//		comm.transmit();
 
 		while (true) {
-			comm.updateSensorData();
+//			comm.updateSensorData();
 			synchronized(handle.data) {
 				data = handle.data;
 				localization.update(data, sensors);
+//				System.out.println(navigation.straightLine(10,10,200,200));
 			}
 
 			if (data.processedImage != null) {
@@ -201,7 +203,7 @@ public class Main {
 				cameraPane.updateWindow(finalMap);
 			}
 			
-			comm.transmit();
+//			comm.transmit();
 			
 			try {
 				Thread.sleep(10);
