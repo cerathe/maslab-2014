@@ -175,7 +175,6 @@ public class Main {
 		
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
-<<<<<<< HEAD
 //		// Start serial communication.
 //		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
 //		Sensors sensors = new Sensors();
