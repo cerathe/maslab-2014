@@ -374,9 +374,10 @@ public class ImageProcessor {
             }
 	    }
         
-//        //Draw the void area
-//        for(int i=0; i<grid.voidArea.size(); i++){
-//        	Entry<Integer, Integer> coords = grid.voidArea.get(i);
+        //Draw the void area
+//        Iterator<SimpleEntry<Integer, Integer>> it = grid.voidArea.iterator();
+//        while(it.hasNext()){
+//        	Entry<Integer, Integer> coords = it.next();
 //            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
 //            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
 //            Core.rectangle(processedImage, tl, br, YELLOW);
