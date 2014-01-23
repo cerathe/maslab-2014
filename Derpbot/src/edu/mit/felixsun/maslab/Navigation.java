@@ -128,10 +128,9 @@ public class Navigation {
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
 			}
-		System.out.println("returning: " + path);
 		return path;
-		/*TODO: Fix this; add a cleanup function that makes the calculated naive
-		 * path more parsimonious. I think this is faster than A* because the search
+		/*
+		 * I think this is faster than A* because the search
 		 * space is smaller (only wall-like things) and there's no heuristic to compute
 		 * for each point.
 		 * 
@@ -140,37 +139,30 @@ public class Navigation {
 		 */
 	}
 	
-	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
-		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
-		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
-		SimpleEntry<Integer,Integer> next;
-		finalPath.add(naive.getFirst());
-		SimpleEntry<Integer,Integer> secondNext = naive.getLast();
-		while(it.hasNext()){
-			next = it.next();
-			Iterator<SimpleEntry<Integer, Integer>> it2 = naive.descendingIterator();
-			secondNext = it2.next();
-			while(!secondNext.equals(next)){
-				System.out.println(secondNext);
-				LinkedList<SimpleEntry<Integer, Integer>> triedLine = straightLine(next,secondNext);
-				if(triedLine.getLast().equals(secondNext)){
-					finalPath.add(secondNext);
-					while(!secondNext.equals(next)){
-						next = it.next();
-					}
-					secondNext = naive.getLast();
-					break;
-				}
-				secondNext = it2.next();
-			}
-			if(secondNext.equals(next)){
-				finalPath.add(next);
-				secondNext = naive.getLast();
-			}
-		}
-		System.out.println(finalPath);
-		return finalPath;
-	}
+//	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
+//		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
+//		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
+//		SimpleEntry<Integer,Integer> next;
+//		finalPath.add(naive.getFirst());
+//		SimpleEntry<Integer,Integer> secondNext = naive.getLast();
+//		next = it.next();
+//		while(it.hasNext()){
+//			Iterator<SimpleEntry<Integer, Integer>> it2 = naive.descendingIterator();
+//			secondNext = it2.next();
+//			LinkedList<SimpleEntry<Integer, Integer>> triedLine = straightLine(next,secondNext);
+//			while(!triedLine.getLast().equals(secondNext)){
+//				secondNext = it2.next();
+//				triedLine = straightLine(next,secondNext);
+//				secondNext = naive.getLast();
+//				break;
+//			}
+//			finalPath.add(secondNext);
+//			while(!secondNext.equals(next)){
+//				next = it.next();
+//			}
+//		}
+//		return finalPath;
+//	}
 
 	public void drawPath(LinkedList<SimpleEntry<Integer, Integer>> x){	
 		Iterator<SimpleEntry<Integer,Integer>> it = x.iterator();
