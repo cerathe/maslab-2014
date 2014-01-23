@@ -134,7 +134,14 @@ public class Navigation {
 		 * things like this.
 		 */
 	}
-	
+	public LinkedList<SimpleEntry<Integer, Integer>> naiveWallFollow(SimpleEntry<Integer, Integer>pt1, SimpleEntry<Integer, Integer>pt2){
+		int x1 = pt1.getKey();
+		int x2 = pt2.getKey();
+		int y1 = pt1.getValue();
+		int y2 = pt2.getValue();
+		return naiveWallFollow(x1,y1,x2,y2);
+	}
+
 	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
 		//This cleanup runs in O(n^2)--is there better?
 		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
