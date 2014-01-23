@@ -51,20 +51,20 @@ public class WallFollowState extends State {
 		if (frontDist < setPoint) {
 //			if (direction == 1) {
 				System.out.println("Too close, turn left");
-				turnState.step(loc, sensors, -0.1);
+				turnState.step(loc, sensors, -0.05);
 //			} else {
 //				System.out.println("Too close, turn right");
 //				turnState.step(loc, sensors, 0.1);
 //			}
 		} else {
 			if (direction == -1) {
-				System.out.println("Follow left");
 				motorA = driveSpeed + diff;
 				motorB = driveSpeed - diff;
+				System.out.format("Follow left: %f %f \n", motorA, motorB);
 			} else {
-				System.out.println("Follow right");
 				motorA = driveSpeed - diff;
 				motorB = driveSpeed + diff;
+				System.out.format("Follow right: %f %f \n", motorA, motorB);
 			}
 			sensors.leftDriveMotor.setSpeed(-motorA);
 			sensors.rightDriveMotor.setSpeed(motorB);

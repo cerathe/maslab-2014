@@ -83,7 +83,6 @@ public class Localization {
 		}
 		
 		// Update each particle with the expected drift.
-		// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
 		// Update the probability of each particle.
 		for (int i=0; i<PARTICLE_COUNT; i++) {
 			Pose oldPose = robotPositions.get(i);
@@ -92,7 +91,17 @@ public class Localization {
 			double newX = oldPose.x + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaX;
 			double newY = oldPose.y + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaY;
 			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT + turn;
-			double newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
+			double newProb;
+			if (stuck && grid.closestOccupied(newX, newY) > Constants.ROBOT_WIDTH/2 + 1) {
+				// If we're stuck, we must be stuck against something.
+				newProb = -100000000;
+			} else if (grid.closestOccupied(newX, newY) < Constants.ROBOT_WIDTH/2 - 2) {
+				// We're intersecting with a wall.  Bad.
+				newProb = -100000000;
+			} else {
+				newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
+			}
+			
 			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
 		}
 		
