@@ -162,6 +162,10 @@ class SparseGrid {
 		return Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
 	}
 	
+	public double dist(SimpleEntry<Integer,Integer> p1,SimpleEntry<Integer,Integer> p2 ){
+		return dist(p1.getKey(), p1.getValue(), p2.getKey(), p2.getValue());
+	}
+	
 	public double closestOccupied(double x, double y) {
 		/*
 		 * Finds the distance to the closest occupied point from (x, y).
