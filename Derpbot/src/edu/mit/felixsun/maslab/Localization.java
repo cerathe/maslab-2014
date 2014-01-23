@@ -13,6 +13,9 @@ public class Localization {
 	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
 	public final static double TRAVEL_DRIFT_SPEED = 0.05;		// Inches / second
 	public final static double TURN_DRIFT_SPEED = 0.03;			// Radians / second
+	// How uncertain are we about our starting location?
+	public final static double INITIAL_DELTA_LOC = 2;
+	public final static double INITIAL_DELTA_ANGLE = 0.1;
 	public final static double WHEEL_RADIUS = 1.875;
 	
 	BotClientMap map;
@@ -26,14 +29,16 @@ public class Localization {
 	public Localization(cvData data) {
 		map = BotClientMap.getDefaultMap();
 		grid = new SparseGrid(data.gridSize, map, data.robotWidth);
+		rng = new Random();
 		robotPositions = new ArrayList<Pose>();
-		Pose startPose = new Pose(grid.robotX, grid.robotY, grid.robotTheta);
 		for (int i=0; i<PARTICLE_COUNT; i++) {
+			Pose startPose = new Pose(grid.robotX + rng.nextGaussian() * INITIAL_DELTA_LOC,
+					grid.robotY + rng.nextGaussian() * INITIAL_DELTA_LOC, 
+					grid.robotTheta + rng.nextGaussian() * INITIAL_DELTA_ANGLE);
 			robotPositions.add(startPose);
 		}
 		normalization = 0;
 		grid.writeMap();
-		rng = new Random();
 		lastUpdateTime = System.nanoTime();
 	}
 	
@@ -45,7 +50,7 @@ public class Localization {
 		lastUpdateTime = System.nanoTime();
 		
 		// Calculate drift using encoders.
-		double deltaLeft = sensors.leftEncoder.getDeltaAngularDistance() * WHEEL_RADIUS;
+		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * WHEEL_RADIUS;
 		double deltaRight = sensors.rightEncoder.getDeltaAngularDistance() * WHEEL_RADIUS;
 		double forward = (deltaLeft + deltaRight) / 2;
 		double turn = (deltaRight - deltaLeft) / data.robotWidth;

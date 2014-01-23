@@ -24,9 +24,9 @@ public class WallFollowState extends State {
 		System.out.println(driveSpeed);
 	}
 	
-	public void step(cvData data, Sensors sensors) {
-		double leftD = getSideDistance(data.grid, -1);
-		double rightD = getSideDistance(data.grid, 1);
+	public void step(Localization loc, Sensors sensors) {
+		double leftD = getSideDistance(loc.grid, -1);
+		double rightD = getSideDistance(loc.grid, 1);
 		double minD;
 		int direction;	// -1 = left; 1 = right
 		if (leftD < rightD) {
