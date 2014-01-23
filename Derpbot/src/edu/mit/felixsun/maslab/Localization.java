@@ -11,11 +11,11 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 10; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 0.05;		// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.03;			// Radians / second
+	public final static double TRAVEL_DRIFT_SPEED = 0.0;		// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0.0;			// Radians / second
 	// How uncertain are we about our starting location?
-	public final static double INITIAL_DELTA_LOC = 2;
-	public final static double INITIAL_DELTA_ANGLE = 0.1;
+	public final static double INITIAL_DELTA_LOC = 0;
+	public final static double INITIAL_DELTA_ANGLE = 0;
 	public final static double STUCK_VEL = 0.1;		// Inches/second
 	
 	BotClientMap map;

@@ -200,17 +200,17 @@ public class Main {
 
 		comm.transmit();
 		
-//		WallFollowState myState = new WallFollowState(-1, -1);
+		WallFollowState myState = new WallFollowState(-1, -1);
 		SimpleEntry<Integer,Integer> iPos = new SimpleEntry<Integer,Integer>((int) localization.grid.robotX,(int) localization.grid.robotY);
 		SimpleEntry<Integer,Integer> destination = new SimpleEntry<Integer,Integer>(70,40);
 		LinkedList<SimpleEntry<Integer, Integer>> theWay = navigation.cleanUpNaive(navigation.naiveWallFollow(iPos, destination));
-		PathFollowState myPath = new PathFollowState(-1, theWay); 
+		PathFollowState myPath = new PathFollowState(0.4, theWay); 
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
 				data = handle.data;
 				localization.update(data, sensors);
-//				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(20,20, 100,75)));
+				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(20,20, 100,75)));
 				
 //				navigation.loc.grid.drawList(navigation.straightLine(40,63,70,40));
 //				System.out.println(navigation.loc.grid.getWallNeighbors(new SimpleEntry<Integer,Integer>(25,41)));

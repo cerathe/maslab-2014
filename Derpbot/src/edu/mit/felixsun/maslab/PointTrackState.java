@@ -10,7 +10,7 @@ public class PointTrackState extends State{
 	
 	double acceptableAngle = 0.05;
 	double driveSpeed;
-	double PGAIN = 0.01;
+	double PGAIN = .15;
 	
 	public PointTrackState(double speed){
 		lastDiff = -5; //dummy value
@@ -42,15 +42,16 @@ public class PointTrackState extends State{
 //		}
 //		
 //		double integral;
-		
-		double diff = PGAIN * angleDiff;
+		System.out.println("AngleDiff: "+angleDiff);
+		double diff = PGAIN * angleDiff/Math.PI;
 		double motorA, motorB;
 		double proportional;
 		motorA = driveSpeed - diff;
 		motorB = driveSpeed + diff;
-		
-		sensors.leftDriveMotor.setSpeed(-motorA);
-		sensors.rightDriveMotor.setSpeed(motorB);
+		System.out.println(motorA);
+		System.out.println(motorB);
+		sensors.leftDriveMotor.setSpeed(motorA);
+		sensors.rightDriveMotor.setSpeed(-motorB);
 		
 	}
 	
