@@ -40,14 +40,14 @@ class SparseGrid {
 	
 	static double MEAS_SIGMA = 1; //Estimated st.dev of distance measurement.
 	
-	public SparseGrid(double scale, BotClientMap theMap, double robotWidth) {
+	public SparseGrid(double scale, BotClientMap theMap) {
 		gridSize = scale;
 		map = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
 		errorDistances = new ConcurrentHashMap<Entry<Integer, Integer>, Integer>();
 		this.theMap = theMap;
 		maxX = 0;
 		maxY = 0;
-		width = robotWidth;
+		width = Constants.ROBOT_WIDTH;
 		voidWidth = 3;
 		this.writeMap();
 		this.preprocessErrorDistances();
@@ -175,35 +175,24 @@ class SparseGrid {
 		
 	}
 	
-	public double trueMeas(double viewTheta, double x, double y, double theta){
+	public double trueMeas(double viewTheta, double x, double y, double theta, double max_d){
 		//The true measurement at angle viewtheta given position x,y,theta.
-		double absTheta = viewTheta + theta;
+		double absTheta = viewTheta + theta - Math.PI/2;
 		double xinc = Math.cos(absTheta) * gridSize;
 		double yinc = Math.sin(absTheta) * gridSize;
 		double xtest = x;
 		double ytest = y;
+		int increments = 0;
 		double ans = -1;
-		if(absTheta==Math.PI/2 || absTheta == 3*Math.PI/2){
-			// Felix doesn't think this branch will ever get run, but he's leaving it here for now.
-			while(ytest<this.maxY && ytest>0){
-				ytest = ytest + yinc;
-				if(filled(xtest,ytest)){
-					ans = dist(x,y,xtest,ytest);
-//					System.out.println(xtest);
-					break;
-				}
-			}
-		}
-		else{
-			// If this is slow, add an extra termination condition: a max distance.
-			while(xtest<this.maxX && xtest>0){
-				xtest = xtest + xinc;
-				ytest = ytest + yinc;
-				if(filled(xtest,ytest)){
-					ans = dist(x,y,xtest,ytest);
+		// If this is slow, add an extra termination condition: a max distance.
+		while(increments < max_d / gridSize){
+			increments++;
+			xtest = xtest + xinc;
+			ytest = ytest + yinc;
+			if(filled(xtest,ytest)){
+				ans = dist(x,y,xtest,ytest);
 //					System.out.println(get(xtest,ytest));
-					break;
-				}
+				break;
 			}
 		}
 		return ans;
@@ -215,7 +204,7 @@ class SparseGrid {
 		double[] output = new double[size];
 		for(int i=0; i<size; i++){
 			double theta = ImageProcessor.angularPosition(i, size) - Math.PI/2;
-			double reality = trueMeas(theta,pose.x,pose.y,pose.theta);
+			double reality = trueMeas(theta,pose.x,pose.y,pose.theta, 48);
 			output[i] = reality;
 		}
 		return output;

@@ -8,6 +8,7 @@ public class Cytron extends Actuator {
 	private byte dir = 0;
 	private byte pwm = 0;
 	private int speed = 0;
+	public double lastSet = 0;
 
 	/*
 	 * Takes one digital and one PWM pin (labeled on the Maple as "PWM")
@@ -35,5 +36,6 @@ public class Cytron extends Actuator {
 
 	public void setSpeed(double speed) {
 		this.speed = (int) (speed * 32767);
+		lastSet = speed;
 	}
 }

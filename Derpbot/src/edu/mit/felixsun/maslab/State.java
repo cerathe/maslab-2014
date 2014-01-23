@@ -11,6 +11,6 @@ public class State {
 	public State() {
 	}
 	
-	public void step(cvData data, Sensors sensors) {
+	public void step(Localization loc, Sensors sensors) {
 	}
 }

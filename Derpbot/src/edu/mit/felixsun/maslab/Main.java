@@ -54,7 +54,6 @@ class cvData {
 	 */
 	public double offset;
 	public double gridSize = 1;		// Inches / square
-	public double robotWidth = 10;	// Inches
 	public Mat processedImage;
 	HashMap<Double, Double> angles;
 	HashMap<Entry<Double, Double>, Integer> landmarks;	// Holds (distance, angle) locations of balls, goals.
@@ -200,16 +199,13 @@ public class Main {
 		ground2.setValue(false);
 
 		comm.transmit();
+		
+		WallFollowState myState = new WallFollowState(-1, -1);
 
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
 				data = handle.data;
-				Iterator<Entry<Double, Double>> iterBall = data.landmarks.keySet().iterator();
-				while (iterBall.hasNext()) {
-					Entry<Double, Double> thisBall = iterBall.next();
-//					System.out.format("%f %f \n", thisBall.getKey(), thisBall.getValue());
-				}
 				localization.update(data, sensors);
 //				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(20,20, 100,75)));
 //				navigation.drawPath((navigation.naiveWallFollow(70,40,100,75)));
@@ -220,12 +216,12 @@ public class Main {
 //				blah.add(new SimpleEntry<Integer,Integer>(25,128));
 //				navigation.loc.grid.drawList(blah);
 			}
+			myState.step(localization, sensors);
 
 			if (data.processedImage != null) {
 				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, localization.grid);
 				cameraPane.updateWindow(finalMap);
 			}
-			
 			comm.transmit();
 			
 			try {

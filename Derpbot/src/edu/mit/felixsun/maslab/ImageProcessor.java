@@ -384,8 +384,8 @@ public class ImageProcessor {
 //        }
         
         // Draw the robot's camera stuff.
-        double cameraX = grid.robotX + data.robotWidth/2 * Math.cos(grid.robotTheta);
-        double cameraY = grid.robotY + data.robotWidth/2 * Math.sin(grid.robotTheta);
+        double cameraX = grid.robotX + Constants.ROBOT_WIDTH/2 * Math.cos(grid.robotTheta);
+        double cameraY = grid.robotY + Constants.ROBOT_WIDTH/2 * Math.sin(grid.robotTheta);
         HashMap<Double, Double> angles = data.angles;
         for (Entry<Double, Double> obs : angles.entrySet()) {
         	double wallX = cameraX + obs.getValue() * 
@@ -401,13 +401,13 @@ public class ImageProcessor {
         double gs = grid.gridSize;
         // And finally, draw the robot.
         Point robot = converter.cvt(grid.robotX * grid.gridSize, grid.robotY * grid.gridSize);
-        Core.circle(processedImage, robot, (int) (data.robotWidth/2 * grid.gridSize * scale), YELLOW);
-        Point robotVector = converter.cvt(grid.robotX + data.robotWidth * Math.cos(grid.robotTheta),
-        		grid.robotY + data.robotWidth * Math.sin(grid.robotTheta));
+        Core.circle(processedImage, robot, (int) (Constants.ROBOT_WIDTH/2 * grid.gridSize * scale), YELLOW);
+        Point robotVector = converter.cvt(grid.robotX + Constants.ROBOT_WIDTH * Math.cos(grid.robotTheta),
+        		grid.robotY + Constants.ROBOT_WIDTH * Math.sin(grid.robotTheta));
         Core.line(processedImage, robot, robotVector, YELLOW);
         
         // Testing out measurement
-        double meas = grid.trueMeas(-Math.PI/8, grid.robotX, grid.robotY, grid.robotTheta);
+        double meas = grid.trueMeas(-Math.PI/8, grid.robotX, grid.robotY, grid.robotTheta, 48);
         double theta = -Math.PI/8 + grid.robotTheta;
         Point nextPt = converter.cvt((grid.robotX + meas*Math.cos(theta)), (grid.robotY + meas*Math.sin(theta)));
         Core.line(processedImage, robot, nextPt, BLUE);

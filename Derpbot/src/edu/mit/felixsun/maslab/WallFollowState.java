@@ -9,24 +9,25 @@ public class WallFollowState extends State {
 	double driveSpeed;
 	double PGAIN = -0.01;	// Motor units / inch
 	double DGAIN = -0.05;
+	TurnState turnState = new TurnState();
 	public WallFollowState(double dist, double speed) {
 		lastD = -1.23;	// An initial value, to indicate that we don't have prior state.
 		if (dist < 0) {
-			setPoint = 5;
+			setPoint = 4;
 		} else {
 			setPoint = dist;
 		}
 		if (speed < 0) {
-			driveSpeed = 0.2;
+			driveSpeed = 0.1;
 		} else {
 			driveSpeed = speed;
 		}
-		System.out.println(driveSpeed);
 	}
 	
 	public void step(Localization loc, Sensors sensors) {
 		double leftD = getSideDistance(loc.grid, -1);
 		double rightD = getSideDistance(loc.grid, 1);
+		System.out.format("%f %f \n", leftD, rightD);
 		double minD;
 		int direction;	// -1 = left; 1 = right
 		if (leftD < rightD) {
@@ -43,20 +44,18 @@ public class WallFollowState extends State {
 		} else {
 			derivative = minD - lastD;
 		}
-		double diff = PGAIN*(minD - setPoint - data.robotWidth/2) + DGAIN*derivative;
+		double diff = PGAIN*(minD - setPoint - Constants.ROBOT_WIDTH/2) + DGAIN*derivative;
 		
 		double motorA, motorB;
-		double frontDist = getFrontDistance(data.grid, data.robotWidth);
+		double frontDist = getFrontDistance(loc.grid, Constants.ROBOT_WIDTH);
 		if (frontDist < setPoint) {
-			if (direction == 1) {
+//			if (direction == 1) {
 				System.out.println("Too close, turn left");
-				motorA = -driveSpeed/1.4;
-				motorB = driveSpeed/1.4;
-			} else {
-				System.out.println("Too close, turn right");
-				motorA = driveSpeed/1.4;
-				motorB = -driveSpeed/1.4;
-			}
+				turnState.step(loc, sensors, -0.1);
+//			} else {
+//				System.out.println("Too close, turn right");
+//				turnState.step(loc, sensors, 0.1);
+//			}
 		} else {
 			if (direction == -1) {
 				System.out.println("Follow left");
@@ -67,9 +66,9 @@ public class WallFollowState extends State {
 				motorA = driveSpeed - diff;
 				motorB = driveSpeed + diff;
 			}
+			sensors.leftDriveMotor.setSpeed(-motorA);
+			sensors.rightDriveMotor.setSpeed(motorB);
 		}
-		sensors.leftDriveMotor.setSpeed(-motorA);
-		sensors.rightDriveMotor.setSpeed(-motorB);
 	}
 	
 	double getSideDistance(SparseGrid map, int direction) {
@@ -79,34 +78,28 @@ public class WallFollowState extends State {
 		 * -1 = left
 		 * 1 = right
 		 */
-		int max_len = (int) (24 / map.gridSize);
-		int gridX;
-		for (gridX = 0; gridX < max_len; gridX += direction) {
-			SimpleEntry<Integer, Integer> coords = new SimpleEntry<Integer, Integer>(gridX, 0);
-			if (map.wallNumbers.contains(map.map.get(coords))) {
-				break;
-			}
+		double angle;
+		if (direction == 1) {
+			angle = 0;
+		} else {
+			angle = Math.PI;
 		}
-		return Math.abs(gridX)*map.gridSize;
+		double dist = map.trueMeas(angle, map.robotX, map.robotY, map.robotTheta, 48);
+		if (dist < 0) {
+			return 24;
+		}
+		return dist - Constants.ROBOT_WIDTH/2;
 	}
 	
 	double getFrontDistance(SparseGrid map, double robotWidth) {
 		/*
 		 * Finds the distance from the front of the robot to a wall.
 		 */
-		double minDist = 24;
-		for (double x = -robotWidth/2; x < robotWidth/2; x += map.gridSize) {
-			double y;
-			for (y = 0; y < 24; y += map.gridSize) {
-				if (map.wallNumbers.contains(map.get(x, y))) {
-					break;
-				}
-			}
-			if (y < minDist) {
-				minDist = y;
-			}
+		double dist = map.trueMeas(Math.PI/2, map.robotX, map.robotY, map.robotTheta, 48);
+		if (dist < 0) {
+			return 24;
 		}
-	return minDist;
+		return dist - Constants.ROBOT_WIDTH/2;
 	}
 	
 }

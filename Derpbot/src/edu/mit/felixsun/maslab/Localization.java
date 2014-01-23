@@ -16,19 +16,27 @@ public class Localization {
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.1;
-	public final static double WHEEL_RADIUS = 1.875;
+	public final static double STUCK_VEL = 0.1;		// Inches/second
 	
 	BotClientMap map;
 	public SparseGrid grid;
 	public ArrayList<Pose> robotPositions;
+	public double forwardSpeed;
+	public double turnSpeed;
+	public boolean stuck;
 	double normalization;
 	long lastUpdateTime;
+	int stuckCount;
 	Random rng;
 
 	
 	public Localization(cvData data) {
 		map = BotClientMap.getDefaultMap();
-		grid = new SparseGrid(data.gridSize, map, data.robotWidth);
+		grid = new SparseGrid(data.gridSize, map);
+		forwardSpeed = 0;
+		turnSpeed = 0;
+		stuck = false;
+		stuckCount = 0;
 		rng = new Random();
 		robotPositions = new ArrayList<Pose>();
 		for (int i=0; i<PARTICLE_COUNT; i++) {
@@ -43,17 +51,36 @@ public class Localization {
 	}
 	
 	public void update(cvData data, Sensors sensors) {
+		
 		if (data.angles.size() == 0) {
 			return;
 		}
-		double deltaT = (System.nanoTime() - lastUpdateTime) / 1000000000;
+		double deltaT = (double) (System.nanoTime() - lastUpdateTime) / 1000000000;
 		lastUpdateTime = System.nanoTime();
 		
 		// Calculate drift using encoders.
-		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * WHEEL_RADIUS;
-		double deltaRight = sensors.rightEncoder.getDeltaAngularDistance() * WHEEL_RADIUS;
+		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
+		double deltaRight = sensors.rightEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
 		double forward = (deltaLeft + deltaRight) / 2;
-		double turn = (deltaRight - deltaLeft) / data.robotWidth;
+		double turn = (deltaRight - deltaLeft) / Constants.WHEELBASE_WIDTH;
+		forwardSpeed = forward / deltaT;
+		turnSpeed = turn / deltaT;
+		
+		// Are we stuck?
+		if ((Math.abs(sensors.leftDriveMotor.lastSet) > 0.01 || 
+				Math.abs(sensors.rightDriveMotor.lastSet) > 0.01) &&
+				Math.abs(deltaLeft) < STUCK_VEL*deltaT &&
+				Math.abs(deltaRight) < STUCK_VEL*deltaT) {
+			stuckCount++;
+		} else {
+			stuckCount = 0;
+		}
+		if (stuckCount > 10) {
+			stuck = true;
+			System.out.println("Oh fuck, we're stuck.");
+		} else {
+			stuck = false;
+		}
 		
 		// Update each particle with the expected drift.
 		// Right now, the drift is Gaussian, but this can be a lot better, with encoder data.
