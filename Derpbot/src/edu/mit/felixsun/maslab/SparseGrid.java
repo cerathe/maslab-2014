@@ -341,6 +341,20 @@ class SparseGrid {
 		return output;
 	}
 	
+	public HashSet<SimpleEntry<Integer, Integer>> getNeighborsSet(SimpleEntry<Integer, Integer> pt){
+		HashSet<SimpleEntry<Integer, Integer>> output = new HashSet<SimpleEntry<Integer, Integer>>();
+		int x = pt.getKey();
+		int y = pt.getValue();
+		for(int i=-1; i<2; i++){
+			for(int j=-1; j<2; j++){
+				if(allowedSpace(x+i,y+j)){
+					output.add(new SimpleEntry<Integer, Integer>(x+i, y+j));
+				}
+			}
+		}
+		return output;
+	}
+	
 	public LinkedList<SimpleEntry<Integer, Integer>> getWallNeighbors(SimpleEntry<Integer, Integer> pt){
 		LinkedList<SimpleEntry<Integer, Integer>> output = getNeighbors(pt);
 		LinkedList<SimpleEntry<Integer, Integer>> realoutput = new LinkedList<SimpleEntry<Integer, Integer>>();

@@ -41,13 +41,9 @@ public class Navigation {
 		LinkedList<SimpleEntry<Integer,Integer>> path = new LinkedList<SimpleEntry<Integer,Integer>>();
 		path.add(new SimpleEntry<Integer,Integer>(x1,y1));
 		boolean term = false;
-		SimpleEntry<Integer,Integer> nextPt;
 		double x = x1;
 		double y = y1;
-		int s;
-		nextPt = new SimpleEntry<Integer,Integer>((int)x, (int)y);
 		while(!term){
-			s = path.size()-1;
 			x = x+xint;
 			y = y+yint;
 			if((int)x == x2){
@@ -139,30 +135,39 @@ public class Navigation {
 		 */
 	}
 	
-//	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
-//		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
-//		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
-//		SimpleEntry<Integer,Integer> next;
-//		finalPath.add(naive.getFirst());
-//		SimpleEntry<Integer,Integer> secondNext = naive.getLast();
-//		next = it.next();
-//		while(it.hasNext()){
-//			Iterator<SimpleEntry<Integer, Integer>> it2 = naive.descendingIterator();
-//			secondNext = it2.next();
-//			LinkedList<SimpleEntry<Integer, Integer>> triedLine = straightLine(next,secondNext);
-//			while(!triedLine.getLast().equals(secondNext)){
-//				secondNext = it2.next();
-//				triedLine = straightLine(next,secondNext);
-//				secondNext = naive.getLast();
-//				break;
-//			}
-//			finalPath.add(secondNext);
-//			while(!secondNext.equals(next)){
-//				next = it.next();
-//			}
-//		}
-//		return finalPath;
-//	}
+	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
+		//This cleanup runs in O(n^2)--is there better?
+		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
+		
+		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
+		finalPath.add(naive.getFirst());
+		
+		SimpleEntry<Integer,Integer> next;
+		SimpleEntry<Integer,Integer> secondNext;
+		next = it.next();
+		while(it.hasNext()){
+			Iterator<SimpleEntry<Integer, Integer>> it2 = naive.descendingIterator();
+			secondNext = it2.next();
+			SimpleEntry<Integer, Integer> triedLine = straightLine(next,secondNext).getLast();
+			while(!secondNext.equals(next)){
+				if(triedLine.equals(secondNext)){
+					break;
+				}
+				secondNext = it2.next();
+				triedLine = straightLine(next,secondNext).getLast();
+			}
+			finalPath.add(secondNext);
+			if(!secondNext.equals(next)){
+				while(!secondNext.equals(next)){
+					next = it.next();
+				}				
+			}
+			else{
+				next = it.next();
+			}
+		}
+		return finalPath;
+	}
 
 	public void drawPath(LinkedList<SimpleEntry<Integer, Integer>> x){	
 		Iterator<SimpleEntry<Integer,Integer>> it = x.iterator();

@@ -211,10 +211,10 @@ public class Main {
 					System.out.format("%f %f \n", thisBall.getKey(), thisBall.getValue());
 				}
 //				localization.update(data, sensors);
-//				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(70,40, 100,75)));
-				navigation.drawPath((navigation.naiveWallFollow(70,40,100,75)));
+				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(20,20, 100,75)));
+//				navigation.drawPath((navigation.naiveWallFollow(70,40,100,75)));
 
-//				navigation.loc.grid.drawList(navigation.straightLine(68,114,90,100));
+//				navigation.loc.grid.drawList(navigation.straightLine(40,63,70,40));
 //				System.out.println(navigation.loc.grid.getWallNeighbors(new SimpleEntry<Integer,Integer>(25,41)));
 //				LinkedList<SimpleEntry<Integer,Integer>> blah = new LinkedList<SimpleEntry<Integer,Integer>>() ;
 //				blah.add(new SimpleEntry<Integer,Integer>(25,128));
