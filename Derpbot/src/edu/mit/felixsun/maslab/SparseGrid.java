@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,7 +48,7 @@ class SparseGrid {
 		maxX = 0;
 		maxY = 0;
 		width = robotWidth;
-		voidWidth = 1;
+		voidWidth = 3;
 		this.writeMap();
 		this.preprocessErrorDistances();
 	}
@@ -318,23 +319,19 @@ class SparseGrid {
 	public boolean allowedSpace(int x, int y){
 		Entry<Integer, Integer>pt = new SimpleEntry<Integer, Integer>(x,y);
 		boolean allowed = true;
-		Iterator<SimpleEntry<Integer,Integer>> it = voidArea.iterator();
-		while(it.hasNext()){
-			SimpleEntry<Integer,Integer> se = it.next();
-			if(se.equals(pt)){
-				allowed = false;
-			}
+		if(voidArea.contains(pt)){
+			allowed = false;
 		}
 		return allowed;
 	}
 	
-	public List<SimpleEntry<Integer, Integer>> getNeighbors(SimpleEntry<Integer, Integer> pt){
-		List<SimpleEntry<Integer, Integer>> output = new ArrayList<SimpleEntry<Integer, Integer>>();
+	public LinkedList<SimpleEntry<Integer, Integer>> getNeighbors(SimpleEntry<Integer, Integer> pt){
+		LinkedList<SimpleEntry<Integer, Integer>> output = new LinkedList<SimpleEntry<Integer, Integer>>();
 		int x = pt.getKey();
 		int y = pt.getValue();
 		for(int i=-1; i<2; i++){
 			for(int j=-1; j<2; j++){
-				if(i!=0 && j!=0){
+				if(!(i==0 && j==0)){
 					if(allowedSpace(x+i,y+j)){
 						output.add(new SimpleEntry<Integer, Integer>(x+i, y+j));
 					}
@@ -343,5 +340,41 @@ class SparseGrid {
 		}
 		return output;
 	}
+	
+	public HashSet<SimpleEntry<Integer, Integer>> getNeighborsSet(SimpleEntry<Integer, Integer> pt){
+		HashSet<SimpleEntry<Integer, Integer>> output = new HashSet<SimpleEntry<Integer, Integer>>();
+		int x = pt.getKey();
+		int y = pt.getValue();
+		for(int i=-1; i<2; i++){
+			for(int j=-1; j<2; j++){
+				if(allowedSpace(x+i,y+j)){
+					output.add(new SimpleEntry<Integer, Integer>(x+i, y+j));
+				}
+			}
+		}
+		return output;
+	}
+	
+	public LinkedList<SimpleEntry<Integer, Integer>> getWallNeighbors(SimpleEntry<Integer, Integer> pt){
+		LinkedList<SimpleEntry<Integer, Integer>> output = getNeighbors(pt);
+		LinkedList<SimpleEntry<Integer, Integer>> realoutput = new LinkedList<SimpleEntry<Integer, Integer>>();
+		Iterator<SimpleEntry<Integer, Integer>> it = output.iterator();
+		while(it.hasNext()){
+			SimpleEntry<Integer, Integer> x = it.next();
+			if(getNeighbors(x).size()<8){
+				realoutput.add(x);
+			}
+		}
+		return realoutput;
+	}
+	
+	public void drawList(LinkedList<SimpleEntry<Integer, Integer>> x){
+		Iterator<SimpleEntry<Integer,Integer>> it = x.iterator();
+		while(it.hasNext()){
+			SimpleEntry<Integer,Integer> thisOne = it.next();
+			safeSet(thisOne.getKey(), thisOne.getValue(), 3);
+		}
+	}
+
 
 }
