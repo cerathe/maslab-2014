@@ -3,24 +3,27 @@ package edu.mit.felixsun.maslab;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Random;
+import java.util.Map.Entry;
 
 import comm.BotClientMap;
 import comm.BotClientMap.Pose;
 
 public class Localization {
-	public final static int PARTICLE_COUNT = 10; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 10;		// Inches / second
-	public final static double TURN_DRIFT_SPEED = 2;			// Radians / second
+	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
+	public final static double TRAVEL_DRIFT_SPEED = 3;		// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0.5;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
-	public final static double INITIAL_DELTA_ANGLE = 0.1;
+	public final static double INITIAL_DELTA_ANGLE = 0.02;
 	public final static double STUCK_VEL = 0.1;		// Inches/second
 	
 	BotClientMap map;
 	public SparseGrid grid;
 	public ArrayList<Pose> robotPositions;
+	public Entry<Double, Double> ballPolarLoc;	// Just pass this on for now.
 	public double forwardSpeed;
 	public double turnSpeed;
 	public boolean stuck;
@@ -52,6 +55,7 @@ public class Localization {
 	
 	public void update(cvData data, Sensors sensors) {
 		
+		this.ballPolarLoc = data.ballPolarLoc;
 		if (data.angles.size() == 0) {
 			return;
 		}
@@ -97,7 +101,14 @@ public class Localization {
 			} else if (newTheta < -Math.PI) {
 				newTheta += Math.PI*2;
 			}
-			double newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
+			
+			double newProb;
+			// If we are stuck, we must be next to a wall.
+			if (stuck && grid.closestOccupied(newX, newY) > Constants.ROBOT_WIDTH / 2 + 1) {
+				newProb = -100000000;
+			} else {
+				newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
+			}
 			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
 		}
 		

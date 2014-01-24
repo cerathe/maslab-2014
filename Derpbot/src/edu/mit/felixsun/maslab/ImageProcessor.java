@@ -85,12 +85,13 @@ public class ImageProcessor {
 		return output;
 	}
 	
-	static double distanceConvert(double pixelHeight, double objectHeight) {
+	static double distanceConvert(double pixelHeight, double objectHeight, double angle) {
 		/*
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		return (350.0 / pixelHeight) * objectHeight;
+		double FISHBOWL = 0.5;
+		return (350.0 / pixelHeight) * objectHeight / (1 - Math.pow(Math.PI/2 - angle, 2) * FISHBOWL);
 	}
 
 	static double angularPosition(double xpos, double windowWidth){
@@ -172,10 +173,10 @@ public class ImageProcessor {
 		//Put the ball in the output data.
 		double approxDiam = Math.sqrt(bestArea);
 		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
-		double distance = distanceConvert(approxDiam, ballDiameter);
+		double distance = distanceConvert(approxDiam, ballDiameter, angularPos);
 		Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);
 		synchronized(data) {
-			data.landmarks.put(polarLoc, 1);
+			data.ballPolarLoc = polarLoc;
 		}
 
 		return processedImage;
@@ -299,8 +300,8 @@ public class ImageProcessor {
 	                    continue;
 	            }
 	            
-	            double distance = distanceConvert(thisHeight, wallStripeHeight);
 	            double angle = angularPosition(bounding.x + j, processedImage.width());
+	            double distance = distanceConvert(thisHeight, wallStripeHeight, angle);
 	            if(angle<0.75*Math.PI && angle > 0.25*Math.PI){
 //		            double wallX = Math.cos(angle)*distance;
 //		            double wallY = Math.sin(angle)*distance + data.robotWidth/2;
@@ -313,20 +314,6 @@ public class ImageProcessor {
         
 	}
 	
-	static double[] whiteHeights(Mat input){
-		//Get height of white things across image
-		Mat whiteThings = findWhite(input);
-        Mat heights = new Mat();
-		Core.reduce(whiteThings, heights, 0, Core.REDUCE_SUM, CvType.CV_32S);
-		int len = (int) heights.size().width;
-		double[] distances = new double[len];
-		for(int i=0; i<len; i++){
-			distances[i] = distanceConvert(heights.get(0, i)[0], wallStripeHeight);
-		}
-		
-		return distances;
-	}
-	
 	static public Mat drawGrid(Size size, cvData data, SparseGrid grid) {
 		/*
 		 * Draws a the grid found in data.grid.
@@ -335,6 +322,7 @@ public class ImageProcessor {
 		double scale = 3;
 		double offsetX = 10;
 		double offsetY = 10;
+		Point tl, br;
 		class coordsToImgPoint {
 			/*
 			 * Takes in a Point in inches, returns a Point in pixels.
@@ -362,8 +350,8 @@ public class ImageProcessor {
         Iterator<Entry<Integer, Integer>> keys = grid.map.keySet().iterator();
         while (keys.hasNext()) {
             Entry<Integer, Integer> coords = keys.next();
-            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
-            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
+            tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
+            br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
             double value = grid.map.get(coords);
 
             switch((int)value){	
@@ -374,26 +362,27 @@ public class ImageProcessor {
             }
 	    }
         
-        //Draw the void area
-//        Iterator<SimpleEntry<Integer, Integer>> it = grid.voidArea.iterator();
-//        while(it.hasNext()){
-//        	Entry<Integer, Integer> coords = it.next();
-//            Point tl = converter.cvt(coords.getKey() * grid.gridSize, coords.getValue() * grid.gridSize);
-//            Point br = converter.cvt((coords.getKey() + 1) * grid.gridSize, (coords.getValue() + 1) * grid.gridSize);
-//            Core.rectangle(processedImage, tl, br, YELLOW);
-//        }
-        
-        // Draw the robot's camera stuff.
         double cameraX = grid.robotX + Constants.ROBOT_WIDTH/2 * Math.cos(grid.robotTheta);
         double cameraY = grid.robotY + Constants.ROBOT_WIDTH/2 * Math.sin(grid.robotTheta);
+        //Draw ball.
+        double angle = data.ballPolarLoc.getValue();
+		double distance = data.ballPolarLoc.getKey();
+		if (distance > 0) {
+			double x = cameraX + distance * (Math.cos(grid.robotTheta + angle - Math.PI/2));
+			double y = cameraY + distance * (Math.sin(grid.robotTheta + angle - Math.PI/2));
+			tl = converter.cvt(x, y);
+			br = converter.cvt(x + grid.gridSize, y + grid.gridSize);
+			Core.rectangle(processedImage, tl, br, RED);
+		}
+		// Draw the robot's camera stuff.
         HashMap<Double, Double> angles = data.angles;
         for (Entry<Double, Double> obs : angles.entrySet()) {
         	double wallX = cameraX + obs.getValue() * 
         			Math.cos(grid.robotTheta + obs.getKey() - Math.PI/2);
         	double wallY = cameraY + obs.getValue() * 
         			Math.sin(grid.robotTheta + obs.getKey() - Math.PI/2);
-        	Point tl = converter.cvt(wallX, wallY);
-        	Point br = converter.cvt(wallX + grid.gridSize, wallY + grid.gridSize);
+        	tl = converter.cvt(wallX, wallY);
+        	br = converter.cvt(wallX + grid.gridSize, wallY + grid.gridSize);
         	Core.rectangle(processedImage, tl, br, YELLOW);
         	
         }

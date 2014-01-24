@@ -2,6 +2,7 @@ package edu.mit.felixsun.maslab;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 
 import org.opencv.core.Mat;
 
@@ -15,7 +16,8 @@ public class cvData {
 	public double gridSize = 1;		// Inches / square
 	public Mat processedImage;
 	public HashMap<Double, Double> angles;
-	public HashMap<Entry<Double, Double>, Integer> landmarks;	// Holds (distance, angle) locations of balls, goals.
+	// public HashMap<Entry<Double, Double>, Integer> landmarks = new HashMap<Entry<Double, Double>, Integer>();	// Holds (distance, angle) locations of goals.  Unused.
+	public Entry<Double, Double> ballPolarLoc;
 	/*
 	 * Landmark key:
 	 * 1 - ball
@@ -25,6 +27,6 @@ public class cvData {
 	public cvData() {
 		offset = -2;
 		angles = new HashMap<Double, Double>();
-		landmarks = new HashMap<Entry<Double, Double>, Integer>();
+		ballPolarLoc = new SimpleEntry<Double, Double>(-1.0, -1.0);
 	}
 }

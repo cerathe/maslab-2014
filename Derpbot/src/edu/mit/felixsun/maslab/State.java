@@ -11,6 +11,7 @@ public class State {
 	public State() {
 	}
 	
-	public void step(Localization loc, Sensors sensors) {
+	public int step(Localization loc, Sensors sensors) {
+		return 0;
 	}
 }

@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 public class Navigation {
 	public Localization loc;
+	public final int MAX_TRIES = 100;
 	public Navigation(Localization loca){
 		loc = loca;
 	}
@@ -89,7 +90,7 @@ public class Navigation {
 		int tries = 0;
 		
 		//Assumes a path exists. which is fair.
-		while(!path.getLast().equals(p2) && tries <10000){
+		while(!path.getLast().equals(p2) && tries < MAX_TRIES){
 			tries ++;
 			//pick out the next point to check.
 			SimpleEntry<Integer,Integer> thisPt = nextPts.poll();
@@ -123,7 +124,11 @@ public class Navigation {
 				}
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
-			}
+		}
+		if (tries >= MAX_TRIES) {
+			// Turns out, we didn't actually find a path...
+			return new LinkedList<SimpleEntry<Integer,Integer>>();
+		}
 		return path;
 		/*
 		 * I think this is faster than A* because the search

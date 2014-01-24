@@ -187,7 +187,7 @@ public class SparseGrid {
 		double xtest = x;
 		double ytest = y;
 		int increments = 0;
-		double ans = -1;
+		double ans = max_d / gridSize;
 		// If this is slow, add an extra termination condition: a max distance.
 		while(increments < max_d / gridSize){
 			increments++;
