@@ -327,7 +327,7 @@ public class ImageProcessor {
 		return distances;
 	}
 	
-	static Mat drawGrid(Size size, cvData data, SparseGrid grid) {
+	static public Mat drawGrid(Size size, cvData data, SparseGrid grid) {
 		/*
 		 * Draws a the grid found in data.grid.
 		 * This will probably be moved to another class soon.

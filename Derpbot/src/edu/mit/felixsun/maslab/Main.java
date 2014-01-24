@@ -42,40 +42,12 @@ import comm.BotClientMap;
 import comm.BotClientMap.Point;
 import comm.BotClientMap.Pose;
 import comm.BotClientMap.Wall;
+import comm.CommInterface;
 import comm.MapleComm;
+import comm.SimMapleComm;
 import comm.MapleIO;
 import jssc.SerialPort;
 import jssc.SerialPortException;
-
-class cvData {
-	/*
-	 * A bunch of data that gets passed between the computer vision system
-	 * and the rest of the code.
-	 */
-	public double offset;
-	public double gridSize = 1;		// Inches / square
-	public Mat processedImage;
-	HashMap<Double, Double> angles;
-	HashMap<Entry<Double, Double>, Integer> landmarks;	// Holds (distance, angle) locations of balls, goals.
-	/*
-	 * Landmark key:
-	 * 1 - ball
-	 * 2 - opponent wall (center, yellow)
-	 * More to come.
-	 */
-	public cvData() {
-		offset = -2;
-		angles = new HashMap<Double, Double>();
-		landmarks = new HashMap<Entry<Double, Double>, Integer>();
-	}
-}
-
-class Sensors {
-	public Encoder leftEncoder;
-	public Encoder rightEncoder;
-	public Cytron leftDriveMotor;
-	public Cytron rightDriveMotor;
-}
 
 class cvHandle implements Runnable {
 	/*
@@ -162,21 +134,24 @@ class cvHandle implements Runnable {
 
 
 public class Main {
+	final static boolean SIMULATE = true;
 	
 	public static void main(String[] args) {
+		cvData data;
 		// Just a testing framework for the computer vision stuff.
 		cvHandle handle = new cvHandle(); // Run the cv stuff.
 		Thread cvThread = new Thread(handle);
-		cvThread.start();
-		
-		cvData data = handle.data;
+		if (!SIMULATE) {
+			cvThread.start();
+			data = handle.data;
+		} else {
+			data = new cvData();
+		}
 		Localization localization = new Localization(data);
 		Navigation navigation = new Navigation(localization);
 		
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
-		// Start serial communication.
-		MapleComm comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
 		Sensors sensors = new Sensors();
 		sensors.rightDriveMotor = new Cytron(2, 1);
 		sensors.leftDriveMotor = new Cytron(7, 6);
@@ -185,7 +160,13 @@ public class Main {
 		sensors.rightEncoder = new Encoder(31, 32);
 		DigitalOutput ground1 = new DigitalOutput(0);
 		DigitalOutput ground2 = new DigitalOutput(5);
-		
+		// Start serial communication.
+		CommInterface comm;
+		if (!SIMULATE) {
+			comm = new MapleComm(MapleIO.SerialPortType.WINDOWS);
+		} else {
+			comm = new SimMapleComm(null, sensors);
+		}
 
 		comm.registerDevice(sensors.leftDriveMotor);
 		comm.registerDevice(sensors.rightDriveMotor);
@@ -208,7 +189,11 @@ public class Main {
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
-				data = handle.data;
+				if (!SIMULATE) {
+					data = handle.data;
+				} else {
+					data = comm.fakeImageProcessor();
+				}
 				localization.update(data, sensors);
 //				navigation.drawPath(navigation.cleanUpNaive(navigation.naiveWallFollow(20,20, 100,75)));
 				
@@ -220,10 +205,8 @@ public class Main {
 			}
 //			myState.step(localization, sensors);
 			myPath.step(navigation, sensors);
-			if (data.processedImage != null) {
-				Mat finalMap = ImageProcessor.drawGrid(data.processedImage.size(), data, localization.grid);
-				cameraPane.updateWindow(finalMap);
-			}
+			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 600), data, localization.grid);
+			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
 			try {

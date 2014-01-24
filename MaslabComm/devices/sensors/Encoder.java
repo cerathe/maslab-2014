@@ -47,6 +47,11 @@ public class Encoder extends Sensor {
 		deltaTime = currentTime - lastUpdateTime;
 		lastUpdateTime = currentTime;
 	}
+	
+	public void fakeUpdate(double deltaAngle) {
+		deltaTicks = (int) (deltaAngle * GEAR_REDUCTION * TICKS_PER_REV / 2 / Math.PI);
+		ticks += deltaTicks;
+	}
 
 	@Override
 	public int expectedNumBytesFromMaple() {

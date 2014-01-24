@@ -23,7 +23,7 @@ public class DisplayWindow {
         imageFrame.setVisible(true);
     }
     
-    void updateWindow(Mat mat) {
+    public void updateWindow(Mat mat) {
     	int w = (int) (mat.size().width);
     	int h = (int) (mat.size().height);
     	if (imagePane.getWidth() != w || imagePane.getHeight() != h) {

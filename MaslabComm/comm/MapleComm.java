@@ -7,8 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import devices.MapleDevice;
+import edu.mit.felixsun.maslab.cvData;
 
-public class MapleComm {
+public class MapleComm implements CommInterface {
 	private MapleIO mapleIO;
 	private List<MapleDevice> deviceList = new ArrayList<MapleDevice>();
 	private int consumeSize = 0;
@@ -96,5 +97,12 @@ public class MapleComm {
 	 */
 	private boolean verify() {
 		return true;
+	}
+
+	public cvData fakeImageProcessor() {
+		/*
+		 * Will never be used.
+		 */
+		return null;
 	}
 }

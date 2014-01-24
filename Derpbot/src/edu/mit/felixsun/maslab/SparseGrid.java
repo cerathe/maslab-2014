@@ -18,7 +18,7 @@ import comm.BotClientMap.Point;
 import comm.BotClientMap.Pose;
 import comm.BotClientMap.Wall;
 
-class SparseGrid {
+public class SparseGrid {
 	/*
 	 * A sparse-matrix style 2D grid, that stores an integer at each point.
 	 */
@@ -30,9 +30,9 @@ class SparseGrid {
 	public double MAX_ERROR_RADIUS = 18;		// The farthest out we search, when looking for the closest wall.
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
 	Set<SimpleEntry<Integer,Integer>> voidArea = new HashSet<SimpleEntry<Integer,Integer>>();
-	double robotX;
-	double robotY;
-	double robotTheta;
+	public double robotX;
+	public double robotY;
+	public double robotTheta;
 	double maxX;
 	double maxY;
 	double width;
