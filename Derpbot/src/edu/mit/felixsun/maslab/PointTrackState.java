@@ -8,9 +8,9 @@ public class PointTrackState extends State{
 	TurnState turnState = new TurnState();
 	double lastDiff;
 	
-	double acceptableAngle = 0.05;
+	double acceptableAngle = 0.3;
 	double driveSpeed;
-	double PGAIN = 0.1;
+	double PGAIN = 0.2;
 	
 	public PointTrackState(double speed){
 		lastDiff = -5; //dummy value
@@ -19,19 +19,12 @@ public class PointTrackState extends State{
 	
 	public void step(Navigation nav, Sensors sensors, SimpleEntry<Integer,Integer> pt){
 		Pose currentPose = new Pose(nav.loc.grid.robotX, nav.loc.grid.robotY, nav.loc.grid.robotTheta);
-		double xDiff = nav.loc.grid.robotX - pt.getKey();
-		double yDiff = nav.loc.grid.robotY - pt.getValue();
-		double pathAngle = Math.atan(yDiff/xDiff);
-		if(xDiff<0){
-			pathAngle += Math.PI;
-		}
+		double xDiff = pt.getKey() - nav.loc.grid.robotX;
+		double yDiff = pt.getValue() - nav.loc.grid.robotY;
+//		System.out.format("%f %f \n", xDiff, yDiff);
+		double pathAngle = Math.atan2(yDiff, xDiff);
 		double angleDiff = pathAngle - currentPose.theta;
-		if(angleDiff>Math.PI){
-			angleDiff = 2*Math.PI - angleDiff;
-		}
-		else if(angleDiff<-Math.PI){
-			angleDiff = angleDiff + 2*Math.PI;
-		}
+		angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
 		
 //		double derivative;
 //		if(lastDiff==-5){
@@ -43,14 +36,19 @@ public class PointTrackState extends State{
 //		
 //		double integral;
 		double motorA, motorB;
+		System.out.println(angleDiff);
 		if(Math.abs(angleDiff)<acceptableAngle){
-			motorA = driveSpeed;
-			motorB = driveSpeed;
+			motorA = driveSpeed - angleDiff * PGAIN;
+			motorB = driveSpeed + angleDiff * PGAIN;
 			sensors.leftDriveMotor.setSpeed(-motorA);
-			sensors.rightDriveMotor.setSpeed(motorB);			
+			sensors.rightDriveMotor.setSpeed(motorB);
 		}
-		else{
-			turnState.step(nav.loc, sensors, -angleDiff/2*Math.PI * PGAIN);
+		else if (angleDiff < 0){
+			System.out.println("Turn A");
+			turnState.step(nav.loc, sensors, 0.2);
+		} else {
+			System.out.println("Turn B");
+			turnState.step(nav.loc, sensors, -0.2);
 		}
 		
 		

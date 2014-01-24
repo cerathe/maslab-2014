@@ -22,6 +22,7 @@ public class SimMapleComm implements CommInterface {
 	final double RIGHT_MOTOR_BIAS = 10;	// Radians/s / motor unit
 	final double FRACTION_WHEEL_VARIATION = 0.2;	// Average error of wheel motion.
 	final double TIMESTEP = 0.1;		// seconds
+	final double TURN_DISCOUNT = 0.8;
 	SparseGrid sim;
 	Random rng = new Random();
 	double leftEncoder;
@@ -50,17 +51,24 @@ public class SimMapleComm implements CommInterface {
 		/*
 		 * We cheat a little by taking in a Sensor object.
 		 */
-		leftEncoder = -sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS;
-		rightEncoder = -sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS;
-		double leftD = leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
+		leftEncoder = sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
+		rightEncoder = sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS * TIMESTEP;
+		double leftD = -leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double rightD = rightEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
-		double deltaForward = (leftD + rightD) / 2 * TIMESTEP;
-		double deltaTurn = (rightD - leftD) / Constants.WHEELBASE_WIDTH;
+		double deltaForward = (leftD + rightD) / 2;
+		double deltaTurn = (rightD - leftD) / Constants.WHEELBASE_WIDTH * TURN_DISCOUNT;
 		double deltaX = deltaForward * Math.cos(sim.robotTheta);
 		double deltaY = deltaForward * Math.sin(sim.robotTheta);
-		sim.robotX += deltaX;
-		sim.robotY += deltaY;
-		sim.robotTheta += deltaTurn;
+		if (! (sim.closestOccupied(sim.robotX + deltaX, sim.robotY + deltaY) < Constants.ROBOT_WIDTH/2)) {
+			sim.robotX += deltaX;
+			sim.robotY += deltaY;
+			sim.robotTheta += deltaTurn;
+		} else {
+			leftEncoder = 0;
+			rightEncoder = 0;
+		}
+		// Check for wall collision
+		
 		
 		// Now, draw a map
 		Mat image = ImageProcessor.drawGrid(new Size(600, 600), new cvData(), sim);
@@ -76,8 +84,10 @@ public class SimMapleComm implements CommInterface {
 	
 	public cvData fakeImageProcessor() {
 		cvData data = new cvData();
+		double cameraX = sim.robotX + Constants.ROBOT_WIDTH / 2 * Math.cos(sim.robotTheta);
+		double cameraY = sim.robotY + Constants.ROBOT_WIDTH / 2 * Math.sin(sim.robotTheta);
 		for (double angle = Math.PI/4; angle < 3*Math.PI/4; angle += 0.01) {
-			double dist = sim.trueMeas(angle, sim.robotX, sim.robotY, sim.robotTheta, 84);
+			double dist = sim.trueMeas(angle, cameraX, cameraY, sim.robotTheta, 84);
 			if (dist < 84) {
 				data.angles.put(angle, dist);
 			}

@@ -48,7 +48,7 @@ public class SparseGrid {
 		maxX = 0;
 		maxY = 0;
 		width = Constants.ROBOT_WIDTH;
-		voidWidth = 3;
+		voidWidth = (int) (width / 2 + 1);
 		this.writeMap();
 		this.preprocessErrorDistances();
 	}
