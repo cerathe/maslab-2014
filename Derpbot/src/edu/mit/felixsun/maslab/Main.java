@@ -180,7 +180,7 @@ public class Main {
 		ground2.setValue(false);
 
 		comm.transmit();
-		BallFollowState ball = new BallFollowState();
+		BallCollectState ball = new BallCollectState(navigation);
 		
 		while (true) {
 			comm.updateSensorData();
@@ -192,7 +192,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			ball.step(localization, sensors);
+			ball.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 600), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
 			comm.transmit();

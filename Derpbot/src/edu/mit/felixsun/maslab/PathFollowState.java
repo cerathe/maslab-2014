@@ -18,7 +18,12 @@ public class PathFollowState {
 		pointTrack  = new PointTrackState(driveSpeed);
 	}
 	
-	public void step(Navigation nav, Sensors sensors){
+	public int step(Navigation nav, Sensors sensors){
+		/*
+		 * Return codes:
+		 * 1 - Done.
+		 * 0 - Still following.
+		 */
 		System.out.format("Us: %d %d Goal: %d %d \n",
 				(int) (nav.loc.grid.robotX), (int) (nav.loc.grid.robotY),
 				thisPt.getKey(), thisPt.getValue());
@@ -29,11 +34,13 @@ public class PathFollowState {
 				thisPt = iterator.next();
 			}
 			else{
+				return 1;
 			}
 		}
 		else{
 			pointTrack.step(nav, sensors, thisPt);
 		}
+		return 0;
 	}
 
 }

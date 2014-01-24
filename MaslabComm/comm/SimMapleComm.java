@@ -102,12 +102,14 @@ public class SimMapleComm implements CommInterface {
 		
 		// Add a ball.
 		Entry<Double, Double> bestBallPolar = new SimpleEntry<Double, Double>(1000.0, -1.0);
+		int removeIndex = -1;
 		for (Entry<Double, Double> ball : balls) {
 			double ballX = ball.getKey() - cameraX;
 			double ballY = ball.getValue() - cameraY;
 			double dist = sim.dist(0, 0, ballX, ballY);
-			if (dist < Constants.ROBOT_WIDTH/2 - 1) {
+			if (dist < 2) {
 				System.out.println("You got the ball!");
+				removeIndex = balls.indexOf(ball);
 			}
 			double ballAngle = Math.atan2(ballY, ballX) - sim.robotTheta;
 			ballAngle = Math.atan2(Math.sin(ballAngle), Math.cos(ballAngle)) + Math.PI/2;
@@ -121,6 +123,9 @@ public class SimMapleComm implements CommInterface {
 		}
 		if (bestBallPolar.getKey() < 1000) {
 			data.ballPolarLoc = bestBallPolar;
+		}
+		if (removeIndex != -1) {
+			balls.remove(removeIndex);
 		}
 		return data;
 	}

@@ -8,6 +8,7 @@ public class BallCollectState extends State {
 	
 	Random rng = new Random();
 	PathFollowState myPath;
+	BallFollowState myBall;
 	
 	public BallCollectState(Navigation nav) {
 		newGoal(nav);
@@ -24,17 +25,25 @@ public class BallCollectState extends State {
 		}
 		LinkedList<SimpleEntry<Integer, Integer>> theWay = nav.cleanUpNaive(naiveWay);
 		myPath = new PathFollowState(0.1, theWay);
+		myBall = new BallFollowState();
 	}
 	
-	public void step(Navigation nav, Sensors sensors){
+	public int step(Navigation nav, Sensors sensors){
+		/* 
+		 * Return codes:
+		 * 1 - following ball
+		 * 0 - looking
+		 */
 		// 1 - If we see a ball, go for it.
-		if (nav.loc.landmarks.size() > 0) {
-			
+		int result = myBall.step(nav.loc, sensors);
+		if (result == 1) {
+			return 1;
 		}
-		
-		// 2 - If we were chasing a ball, but don't see it anymore, plow forward a little
-		// to make sure we pick it up.
-		
-		// 3 - Otherwise, keep nav-ing to random points.
+		// 2 - Otherwise, keep nav-ing to random points.
+		result = myPath.step(nav, sensors);
+		if (result == 1) {
+			newGoal(nav);
+		}
+		return 0;
 	}
 }
