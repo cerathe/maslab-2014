@@ -9,7 +9,6 @@ public class Photoresistor extends AnalogInput{
 	private float ThreshValue = 10;
 	public Photoresistor(int i) {
 		super(i);
-		// TODO Auto-generated constructor stub
 	}
 
 	public boolean isBall(){
