@@ -176,6 +176,7 @@ public class Main {
 		comm.registerDevice(sensors.rightEncoder);
 		comm.registerDevice(ground1);
 		comm.registerDevice(ground2);
+		comm.registerDevice(res);
 		comm.initialize();
 		
 		ground1.setValue(false);
