@@ -13,8 +13,8 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 1;		// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.2;			// Radians / second
+	public final static double TRAVEL_DRIFT_SPEED = 2;		// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0.4;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.02;
@@ -92,9 +92,9 @@ public class Localization {
 			Pose oldPose = robotPositions.get(i);
 			double wheelDeltaX = forward * Math.cos(oldPose.theta);
 			double wheelDeltaY = forward * Math.sin(oldPose.theta);
-			double newX = oldPose.x + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaX;
-			double newY = oldPose.y + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaY;
-			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT + turn;
+			double newX = oldPose.x + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT;// + wheelDeltaX;
+			double newY = oldPose.y + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT;// + wheelDeltaY;
+			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT;// + turn;
 			if (newTheta > Math.PI) {
 				newTheta -= Math.PI*2;
 			} else if (newTheta < -Math.PI) {

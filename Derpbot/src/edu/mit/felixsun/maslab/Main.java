@@ -54,7 +54,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = false;
+	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -134,7 +134,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -153,8 +153,8 @@ public class Main {
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
 		Sensors sensors = new Sensors();
-		sensors.rightDriveMotor = new Cytron(2, 1);
-		sensors.leftDriveMotor = new Cytron(7, 6);
+		sensors.rightDriveMotor = new Cytron(7, 6);
+		sensors.leftDriveMotor = new Cytron(2, 1);
 		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
 		sensors.leftEncoder = new Encoder(29, 30);
 		sensors.rightEncoder = new Encoder(31, 32);
@@ -193,8 +193,8 @@ public class Main {
 				localization.update(data, sensors);
 			}
 			ball.step(navigation, sensors);
-			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 600), data, localization.grid);
-			cameraPane.updateWindow(finalMap);
+			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
+//			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
 			try {

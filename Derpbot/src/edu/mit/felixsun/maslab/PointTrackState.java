@@ -42,8 +42,8 @@ public class PointTrackState extends State{
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
 			motorB = driveSpeed + angleDiff * PGAIN;
-			sensors.leftDriveMotor.setSpeed(-motorA);
-			sensors.rightDriveMotor.setSpeed(motorB);
+			sensors.leftDriveMotor.setSpeed(motorA);
+			sensors.rightDriveMotor.setSpeed(-motorB);
 		}
 		else if (angleDiff < 0){
 			System.out.println("Turn A");

@@ -25,16 +25,16 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ImageProcessor {
-	static int greenLowerH = 50;
-	static int greenUpperH = 70;
+	static int greenLowerH = 70;
+	static int greenUpperH = 100;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
 	static int blueUpperH = 120;
 	static int yellowLowerH = 25;
 	static int yellowUpperH = 35;
-	static int lowerS = 40;
-	static int lowerV = 80;
+	static int lowerS = 80;
+	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static Scalar GREEN = new Scalar(0, 255, 0);
@@ -114,7 +114,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
-		processedImage = findBalls(hsvImage, data);
+	    processedImage = findBalls(hsvImage, data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -123,10 +123,12 @@ public class ImageProcessor {
 	
 	static Mat findBalls(Mat hsvImage, cvData data) {
 		// Find balls - both red and green in one shot.
-		Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
-		Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
-		Mat colorMask = new Mat();
-		Core.add(redMask, greenMask, colorMask);
+//		Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
+//		Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+//		Mat colorMask = new Mat();
+//		Core.add(redMask, greenMask, colorMask);
+		// Only green balls for now.  (Too many red things in room.)
+		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat hierarchy = new Mat();

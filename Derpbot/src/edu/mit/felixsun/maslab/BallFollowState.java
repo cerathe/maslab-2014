@@ -17,8 +17,8 @@ public class BallFollowState extends State {
 		
 		if (loc.ballPolarLoc.getKey() < 0) {
 			if (forwardCountdown > 0) {
-				sensors.leftDriveMotor.setSpeed(-SPEED);
-				sensors.rightDriveMotor.setSpeed(SPEED);
+				sensors.leftDriveMotor.setSpeed(SPEED);
+				sensors.rightDriveMotor.setSpeed(-SPEED);
 				forwardCountdown--;
 				return 1;
 			}
@@ -32,8 +32,8 @@ public class BallFollowState extends State {
 		double angle = loc.ballPolarLoc.getValue();
 		double diff = (angle - Math.PI/2) * GAIN;
 		System.out.println(angle);
-		sensors.leftDriveMotor.setSpeed(-SPEED + diff);
-		sensors.rightDriveMotor.setSpeed(SPEED + diff); 
+		sensors.leftDriveMotor.setSpeed(SPEED - diff);
+		sensors.rightDriveMotor.setSpeed(-SPEED - diff); 
 		forwardCountdown = PLOW_TIME;
 		return 1;
 	}

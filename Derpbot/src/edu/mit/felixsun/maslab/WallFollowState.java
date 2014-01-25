@@ -68,8 +68,8 @@ public class WallFollowState extends State {
 				motorB = driveSpeed + diff;
 				System.out.format("Follow right: %f %f \n", motorA, motorB);
 			}
-			sensors.leftDriveMotor.setSpeed(-motorA);
-			sensors.rightDriveMotor.setSpeed(motorB);
+			sensors.leftDriveMotor.setSpeed(motorA);
+			sensors.rightDriveMotor.setSpeed(-motorB);
 		}
 	}
 	

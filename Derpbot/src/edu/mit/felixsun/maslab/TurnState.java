@@ -39,7 +39,7 @@ public class TurnState extends State {
 		lastRight = rightMotor;
 //		System.out.println(loc.forwardSpeed);
 //		System.out.println(loc.turnSpeed);
-		sensors.leftDriveMotor.setSpeed(-leftMotor);
-		sensors.rightDriveMotor.setSpeed(rightMotor);
+		sensors.leftDriveMotor.setSpeed(leftMotor);
+		sensors.rightDriveMotor.setSpeed(-rightMotor);
 	}
 }
