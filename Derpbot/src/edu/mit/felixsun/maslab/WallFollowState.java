@@ -9,6 +9,7 @@ public class WallFollowState extends State {
 	double driveSpeed;
 	double PGAIN = -0.01;	// Motor units / inch
 	double DGAIN = -0.05;
+	int stuckCount = 0;
 	TurnState turnState = new TurnState();
 	public WallFollowState(double dist, double speed) {
 		lastD = -1.23;	// An initial value, to indicate that we don't have prior state.
@@ -25,9 +26,10 @@ public class WallFollowState extends State {
 	}
 	
 	public void step(Localization loc, Sensors sensors) {
+		
 		double leftD = getSideDistance(loc.grid, -1);
 		double rightD = getSideDistance(loc.grid, 1);
-		System.out.format("%f %f \n", leftD, rightD);
+//		System.out.format("%f %f \n", leftD, rightD);
 		double minD;
 		int direction;	// -1 = left; 1 = right
 		if (leftD < rightD) {

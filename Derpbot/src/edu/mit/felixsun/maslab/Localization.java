@@ -3,24 +3,27 @@ package edu.mit.felixsun.maslab;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Random;
+import java.util.Map.Entry;
 
 import comm.BotClientMap;
 import comm.BotClientMap.Pose;
 
 public class Localization {
-	public final static int PARTICLE_COUNT = 10; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 5;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 0.0;		// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.0;			// Radians / second
+	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
+	public final static double TRAVEL_DRIFT_SPEED = 1;		// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0.2;			// Radians / second
 	// How uncertain are we about our starting location?
-	public final static double INITIAL_DELTA_LOC = 0;
-	public final static double INITIAL_DELTA_ANGLE = 0;
+	public final static double INITIAL_DELTA_LOC = 2;
+	public final static double INITIAL_DELTA_ANGLE = 0.02;
 	public final static double STUCK_VEL = 0.1;		// Inches/second
 	
 	BotClientMap map;
 	public SparseGrid grid;
 	public ArrayList<Pose> robotPositions;
+	public Entry<Double, Double> ballPolarLoc;	// Just pass this on for now.
 	public double forwardSpeed;
 	public double turnSpeed;
 	public boolean stuck;
@@ -52,6 +55,7 @@ public class Localization {
 	
 	public void update(cvData data, Sensors sensors) {
 		
+		this.ballPolarLoc = data.ballPolarLoc;
 		if (data.angles.size() == 0) {
 			return;
 		}
@@ -91,17 +95,19 @@ public class Localization {
 			double newX = oldPose.x + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaX;
 			double newY = oldPose.y + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaY;
 			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT + turn;
+			if (newTheta > Math.PI) {
+				newTheta -= Math.PI*2;
+			} else if (newTheta < -Math.PI) {
+				newTheta += Math.PI*2;
+			}
+			
 			double newProb;
-			if (stuck && grid.closestOccupied(newX, newY) > Constants.ROBOT_WIDTH/2 + 1) {
-				// If we're stuck, we must be stuck against something.
-				newProb = -100000000;
-			} else if (grid.closestOccupied(newX, newY) < Constants.ROBOT_WIDTH/2 - 2) {
-				// We're intersecting with a wall.  Bad.
+			// If we are stuck, we must be next to a wall.
+			if (stuck && grid.closestOccupied(newX, newY) > Constants.ROBOT_WIDTH / 2 + 1) {
 				newProb = -100000000;
 			} else {
 				newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
 			}
-			
 			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
 		}
 		
