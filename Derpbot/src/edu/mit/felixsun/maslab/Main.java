@@ -20,6 +20,7 @@ import java.util.Random;
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
 import devices.sensors.Encoder;
+import devices.sensors.Photoresistor;
 import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
@@ -160,6 +161,7 @@ public class Main {
 		sensors.rightEncoder = new Encoder(31, 32);
 		DigitalOutput ground1 = new DigitalOutput(0);
 		DigitalOutput ground2 = new DigitalOutput(5);
+		Photoresistor res = new Photoresistor(8);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -180,7 +182,7 @@ public class Main {
 		ground2.setValue(false);
 
 		comm.transmit();
-		BallCollectState ball = new BallCollectState(navigation);
+//		BallCollectState ball = new BallCollectState(navigation);
 		
 		while (true) {
 			comm.updateSensorData();
@@ -192,8 +194,9 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			ball.step(navigation, sensors);
-			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
+			System.out.println(res.getValue());
+//			ball.step(navigation, sensors);
+//			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 //			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
