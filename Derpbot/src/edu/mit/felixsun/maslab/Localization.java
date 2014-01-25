@@ -13,8 +13,8 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 3;		// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.5;			// Radians / second
+	public final static double TRAVEL_DRIFT_SPEED = 1;		// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0.2;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.02;

@@ -95,7 +95,8 @@ public class SimMapleComm implements CommInterface {
 			double dist = sim.trueMeas(angle, cameraX, cameraY, sim.robotTheta, 84);
 			if (dist < 84) {
 				// "Fishbowl" effect.
-				double distortedDist = dist * (1 - Math.pow(Math.PI/2 - angle, 2) / 2) + rng.nextGaussian()*2;
+				// double distortedDist = dist * (1 - Math.pow(Math.PI/2 - angle, 2) / 2) + rng.nextGaussian()*2;
+				double distortedDist = dist + rng.nextGaussian()*2;
 				data.angles.put(angle, distortedDist);
 			}
 		}

@@ -9,6 +9,7 @@ public class BallCollectState extends State {
 	Random rng = new Random();
 	PathFollowState myPath;
 	BallFollowState myBall;
+	int lastReturn = 0;
 	
 	public BallCollectState(Navigation nav) {
 		newGoal(nav);
@@ -37,13 +38,18 @@ public class BallCollectState extends State {
 		// 1 - If we see a ball, go for it.
 		int result = myBall.step(nav.loc, sensors);
 		if (result == 1) {
+			lastReturn = 1;
 			return 1;
 		}
 		// 2 - Otherwise, keep nav-ing to random points.
+		if (lastReturn == 1) {
+			newGoal(nav);
+		}
 		result = myPath.step(nav, sensors);
 		if (result == 1) {
 			newGoal(nav);
 		}
+		lastReturn = 0;
 		return 0;
 	}
 }
