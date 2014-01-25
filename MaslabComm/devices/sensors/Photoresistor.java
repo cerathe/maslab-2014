@@ -11,10 +11,6 @@ public class Photoresistor extends AnalogInput{
 		super(i);
 		// TODO Auto-generated constructor stub
 	}
-	
-	public float getValue(){
-		return this.value;
-	}
 
 	public boolean isBall(){
 		boolean output = false;
