@@ -165,7 +165,8 @@ public class Main {
 		DigitalOutput ground3 = new DigitalOutput(19);
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
-		Photoresistor res = new Photoresistor(12,13);
+		AnalogInput res = new AnalogInput(12);
+		DigitalOutput led = new DigitalOutput(13);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -183,6 +184,7 @@ public class Main {
 		comm.registerDevice(ground3);
 		comm.registerDevice(ground4);
 		comm.registerDevice(res);
+		comm.registerDevice(led);
 		comm.initialize();
 		
 		ground1.setValue(false);
@@ -191,6 +193,7 @@ public class Main {
 		ground4.setValue(false);
 
 		comm.transmit();
+		led.setValue(true);
 //		BallCollectState ball = new BallCollectState(navigation);
 		while (true) {
 			comm.updateSensorData();
@@ -202,7 +205,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			res.isBall();
+			System.out.println(res.getValue());
 //			ball.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
