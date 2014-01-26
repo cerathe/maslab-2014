@@ -22,8 +22,8 @@ import edu.mit.felixsun.maslab.cvData;
 public class SimMapleComm implements CommInterface {
 	private List<MapleDevice> deviceList = new ArrayList<MapleDevice>();
 	private List<Entry<Double, Double>> balls = new ArrayList<Entry<Double, Double>>();
-	final double LEFT_MOTOR_BIAS = 5;	// Radians/s / motor unit
-	final double RIGHT_MOTOR_BIAS = 6;	// Radians/s / motor unit
+	final double LEFT_MOTOR_BIAS = 1;	// Radians/s / motor unit
+	final double RIGHT_MOTOR_BIAS = 1.2;	// Radians/s / motor unit
 	final double FRACTION_WHEEL_VARIATION = 0.2;	// Average error of wheel motion.
 	final double TIMESTEP = 0.1;		// seconds
 	final double TURN_DISCOUNT = 0.8;
@@ -59,8 +59,8 @@ public class SimMapleComm implements CommInterface {
 		 */
 		leftEncoder = sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
 		rightEncoder = sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS * TIMESTEP;
-		double leftD = -leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
-		double rightD = rightEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
+		double leftD = leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
+		double rightD = -rightEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double deltaForward = (leftD + rightD) / 2;
 		double deltaTurn = (rightD - leftD) / Constants.WHEELBASE_WIDTH * TURN_DISCOUNT;
 		double deltaX = deltaForward * Math.cos(sim.robotTheta);
@@ -76,7 +76,7 @@ public class SimMapleComm implements CommInterface {
 		}
 		
 		// Now, draw a map
-		Mat image = ImageProcessor.drawGrid(new Size(600, 600), new cvData(), sim);
+		Mat image = ImageProcessor.drawGrid(new Size(600, 480), new cvData(), sim);
 		cameraPane.updateWindow(image);
 	}
 	
@@ -92,8 +92,8 @@ public class SimMapleComm implements CommInterface {
 		double cameraX = sim.robotX + Constants.ROBOT_WIDTH / 2 * Math.cos(sim.robotTheta);
 		double cameraY = sim.robotY + Constants.ROBOT_WIDTH / 2 * Math.sin(sim.robotTheta);
 		for (double angle = Math.PI/4; angle < 3*Math.PI/4; angle += 0.01) {
-			double dist = sim.trueMeas(angle, cameraX, cameraY, sim.robotTheta, 84);
-			if (dist < 84) {
+			double dist = sim.trueMeas(angle, cameraX, cameraY, sim.robotTheta, 200);
+			if (dist < 200) {
 				// "Fishbowl" effect.
 				// double distortedDist = dist * (1 - Math.pow(Math.PI/2 - angle, 2) / 2) + rng.nextGaussian()*2;
 				double distortedDist = dist + rng.nextGaussian()*2;

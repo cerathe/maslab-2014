@@ -11,10 +11,12 @@ public class PathFollowState {
 	Iterator<SimpleEntry<Integer,Integer>> iterator;
 	SimpleEntry<Integer,Integer> thisPt;
 	PointTrackState pointTrack;
+	LinkedList<SimpleEntry<Integer,Integer>> path;
 	public PathFollowState(double speed, LinkedList<SimpleEntry<Integer,Integer>> path){
 		driveSpeed = speed;
 		iterator = path.iterator();
 		thisPt = iterator.next();
+		this.path = path;
 		pointTrack  = new PointTrackState(driveSpeed);
 	}
 	
@@ -24,9 +26,7 @@ public class PathFollowState {
 		 * 1 - Done.
 		 * 0 - Still following.
 		 */
-		System.out.format("Us: %d %d Goal: %d %d \n",
-				(int) (nav.loc.grid.robotX), (int) (nav.loc.grid.robotY),
-				thisPt.getKey(), thisPt.getValue());
+//		System.out.println(path);
 		SimpleEntry<Integer,Integer> currentPos = new SimpleEntry<Integer,Integer>((int)nav.loc.grid.robotX, (int)nav.loc.grid.robotY);
 		double dist = nav.loc.grid.dist(currentPos, thisPt);
 		if(dist<=tolerance){

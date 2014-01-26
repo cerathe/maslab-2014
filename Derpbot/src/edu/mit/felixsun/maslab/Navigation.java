@@ -90,7 +90,7 @@ public class Navigation {
 		int tries = 0;
 		
 		//Assumes a path exists. which is fair.
-		while(nextPts.size() > 0 && tries < MAX_TRIES){
+		while(!path.getLast().equals(p2) && tries < MAX_TRIES){
 			tries ++;
 			//pick out the next point to check.
 			SimpleEntry<Integer,Integer> thisPt = nextPts.poll();

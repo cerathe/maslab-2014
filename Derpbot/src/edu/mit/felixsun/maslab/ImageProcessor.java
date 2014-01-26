@@ -37,6 +37,7 @@ public class ImageProcessor {
 	static int lowerV = 40;
 	static double OK_RATIO = 2.0;
 	static double MIN_FILL_PROPORTION = 0.2;
+	static double MIN_BLOB_AREA = 20;
 	static Scalar GREEN = new Scalar(0, 255, 0);
     static Scalar YELLOW = new Scalar(0,255,255);
     static Scalar RED = new Scalar(0,0,255);
@@ -134,12 +135,13 @@ public class ImageProcessor {
 		Mat hierarchy = new Mat();
 		Imgproc.findContours(colorMask.clone(), contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 		// Look for the "best" blob
-		// The best blob is the largest one that is also
+		// The best blob is lowest one that is
 		// - Roughly square / circular
 		// - Filled enough
+		// - Large enough.
 		int bestBlob = -1;
 		Rect bestBoundingRect = new Rect();
-		double bestArea = 0;
+		double bestHeight = 1000;
 		for (int i = 0; i < contours.size(); i++) {
 			// Make a rectangle.
 			Rect boundingRect = Imgproc.boundingRect(contours.get(i));
@@ -153,10 +155,14 @@ public class ImageProcessor {
 			if (1.0 * blobArea / boundingRect.area() < MIN_FILL_PROPORTION){
 				continue;
 			}
-			// If we get this far, we are good.
-			if (blobArea > bestArea){
+			// Is the rectangle large enough?
+			if (blobArea < MIN_BLOB_AREA) {
+				continue;
+			}
+			// If we get this far, we are good.  See if it is lower than the lowest so far.
+			if (boundingRect.y - boundingRect.height < bestHeight){
 				bestBlob = i;
-				bestArea = blobArea;
+				bestHeight = boundingRect.y - boundingRect.height;
 				bestBoundingRect = boundingRect;
 			}
 		}
@@ -173,7 +179,7 @@ public class ImageProcessor {
 		Core.rectangle(processedImage, bestBoundingRect.tl(), bestBoundingRect.br(), GREEN);
 		
 		//Put the ball in the output data.
-		double approxDiam = Math.sqrt(bestArea);
+		double approxDiam = Math.sqrt(bestBoundingRect.area());
 		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
 		double distance = distanceConvert(approxDiam, ballDiameter, angularPos);
 		Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);

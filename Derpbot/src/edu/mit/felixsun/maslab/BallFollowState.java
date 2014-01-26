@@ -31,7 +31,7 @@ public class BallFollowState extends State {
 		// Follow the ball.
 		double angle = loc.ballPolarLoc.getValue();
 		double diff = (angle - Math.PI/2) * GAIN;
-		System.out.println(angle);
+//		System.out.println(angle);
 		sensors.leftDriveMotor.setSpeed(SPEED - diff);
 		sensors.rightDriveMotor.setSpeed(-SPEED - diff); 
 		forwardCountdown = PLOW_TIME;

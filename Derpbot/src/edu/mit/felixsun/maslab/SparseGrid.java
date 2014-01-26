@@ -182,12 +182,12 @@ public class SparseGrid {
 	public double trueMeas(double viewTheta, double x, double y, double theta, double max_d){
 		//The true measurement at angle viewtheta given position x,y,theta.
 		double absTheta = viewTheta + theta - Math.PI/2;
-		double xinc = Math.cos(absTheta) * gridSize;
-		double yinc = Math.sin(absTheta) * gridSize;
+		double xinc = Math.cos(absTheta) * gridSize / 2;
+		double yinc = Math.sin(absTheta) * gridSize / 2;
 		double xtest = x;
 		double ytest = y;
 		int increments = 0;
-		double ans = max_d / gridSize;
+		double ans = 2 * max_d / gridSize;
 		// If this is slow, add an extra termination condition: a max distance.
 		while(increments < max_d / gridSize){
 			increments++;
