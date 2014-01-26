@@ -37,6 +37,7 @@ public class SparseGrid {
 	double maxY;
 	double width;
 	int voidWidth; //clearance from the walls in grid spaces
+	int reactorVoidWidth; //clearance from the reactors in grid spaces
 	
 	static double MEAS_SIGMA = 1; //Estimated st.dev of distance measurement.
 	
@@ -49,6 +50,7 @@ public class SparseGrid {
 		maxY = 0;
 		width = Constants.ROBOT_WIDTH;
 		voidWidth = (int) (width / 2 + 2);
+		reactorVoidWidth = voidWidth + 6;
 		this.writeMap();
 		this.preprocessErrorDistances();
 	}
@@ -124,6 +126,13 @@ public class SparseGrid {
 		for(int i = -voidWidth; i<voidWidth+1; i++){
 			for(int j = -voidWidth; j<voidWidth+1; j++){
 				voidArea.add(new SimpleEntry<Integer,Integer>(xIndex+i, yIndex+j));
+			}
+		}
+		if(value==3){
+			for(int i = -reactorVoidWidth; i<reactorVoidWidth + 1; i++){
+				for(int j = -reactorVoidWidth; j<reactorVoidWidth+1; j++){
+					voidArea.add(new SimpleEntry<Integer,Integer>(xIndex+i, yIndex+j));
+				}
 			}
 		}
 		map.put(coords, value);
