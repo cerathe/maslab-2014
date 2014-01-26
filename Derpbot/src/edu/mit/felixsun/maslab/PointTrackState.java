@@ -38,21 +38,21 @@ public class PointTrackState extends State{
 //		double integral;
 
 		double motorA, motorB;
-//		System.out.println(angleDiff);
+		System.out.println(angleDiff);
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
 			motorB = driveSpeed + angleDiff * PGAIN;
-			sensors.leftDriveMotor.setSpeed(-motorA);
-			sensors.rightDriveMotor.setSpeed(motorB);
+			sensors.leftDriveMotor.setSpeed(motorA);
+			sensors.rightDriveMotor.setSpeed(-motorB);
 		}
 		else if (angleDiff < 0){
-//			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, 0.2);
+			System.out.println("Turn A");
+			turnState.step(nav.loc, sensors, 0.1);
 		} else {
-//			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, -0.2);
+			System.out.println("Turn B");
+			turnState.step(nav.loc, sensors, -0.1);
 		}
-		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
+//		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		
 		
 	}

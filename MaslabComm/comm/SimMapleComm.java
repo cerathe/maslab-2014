@@ -22,8 +22,8 @@ import edu.mit.felixsun.maslab.cvData;
 public class SimMapleComm implements CommInterface {
 	private List<MapleDevice> deviceList = new ArrayList<MapleDevice>();
 	private List<Entry<Double, Double>> balls = new ArrayList<Entry<Double, Double>>();
-	final double LEFT_MOTOR_BIAS = 1;	// Radians/s / motor unit
-	final double RIGHT_MOTOR_BIAS = 1.2;	// Radians/s / motor unit
+	final double LEFT_MOTOR_BIAS = 3;	// Radians/s / motor unit
+	final double RIGHT_MOTOR_BIAS = 3.6;	// Radians/s / motor unit
 	final double FRACTION_WHEEL_VARIATION = 0.2;	// Average error of wheel motion.
 	final double TIMESTEP = 0.1;		// seconds
 	final double TURN_DISCOUNT = 0.8;
@@ -43,8 +43,8 @@ public class SimMapleComm implements CommInterface {
 		sim.robotY += rng.nextGaussian() * 2;
 		sim.robotTheta += rng.nextGaussian() * 0.1;
 		this.sensors = sensors;
-		balls.add(new SimpleEntry<Double, Double>(30.0, 40.0));
-		balls.add(new SimpleEntry<Double, Double>(55.0, 40.0));
+//		balls.add(new SimpleEntry<Double, Double>(30.0, 40.0));
+//		balls.add(new SimpleEntry<Double, Double>(55.0, 40.0));
 		cameraPane = new DisplayWindow("Simulator Output", 600, 600);
 		
 	}

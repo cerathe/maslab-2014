@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 
 public class Navigation {
 	public Localization loc;
-	public final int MAX_TRIES = 100;
+	public final int MAX_TRIES = 1000;
 	public Navigation(Localization loca){
 		loc = loca;
 	}
@@ -125,7 +125,7 @@ public class Navigation {
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
 		}
-		if (tries >= MAX_TRIES) {
+		if (tries >= MAX_TRIES || (! finalSpots.contains(path.getLast()))) {
 			// Turns out, we didn't actually find a path...
 			return new LinkedList<SimpleEntry<Integer,Integer>>();
 		}
