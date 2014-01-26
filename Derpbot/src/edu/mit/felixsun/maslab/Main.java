@@ -184,7 +184,7 @@ public class Main {
 		ground2.setValue(false);
 
 		comm.transmit();
-		BallCollectState ball = new BallCollectState(navigation);
+//		BallCollectState ball = new BallCollectState(navigation);
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -195,8 +195,8 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			System.out.println(res.getValue());
-			ball.step(navigation, sensors);
+			System.out.println(res.getValue());
+//			ball.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
 			comm.transmit();
