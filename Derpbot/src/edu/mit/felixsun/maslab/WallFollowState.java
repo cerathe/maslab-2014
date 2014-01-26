@@ -25,7 +25,7 @@ public class WallFollowState extends State {
 		}
 	}
 	
-	public void step(Localization loc, Sensors sensors) {
+	public int step(Localization loc, Sensors sensors) {
 		
 		double leftD = getSideDistance(loc.grid, -1);
 		double rightD = getSideDistance(loc.grid, 1);
@@ -71,6 +71,7 @@ public class WallFollowState extends State {
 			sensors.leftDriveMotor.setSpeed(motorA);
 			sensors.rightDriveMotor.setSpeed(-motorB);
 		}
+		return 1;
 	}
 	
 	double getSideDistance(SparseGrid map, int direction) {
