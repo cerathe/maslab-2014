@@ -3,8 +3,8 @@ package edu.mit.felixsun.maslab;
 public class BallFollowState extends State {
 
 	int forwardCountdown = 0;
-	final double SPEED = .1;
-	final double GAIN = .1;
+	final double SPEED = Constants.SPEED;
+	final double GAIN = Constants.SPEED;
 	final int PLOW_TIME = 10;
 	public BallFollowState() {
 		

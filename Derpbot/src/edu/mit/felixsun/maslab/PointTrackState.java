@@ -47,10 +47,10 @@ public class PointTrackState extends State{
 		}
 		else if (angleDiff < 0){
 //			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, -0.5);
+			turnState.step(nav.loc, sensors, -0.2);
 		} else {
 //			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, 0.5);
+			turnState.step(nav.loc, sensors, 0.2);
 		}
 //		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		

@@ -63,7 +63,7 @@ public class Localization {
 		lastUpdateTime = System.nanoTime();
 		
 		// Calculate drift using encoders.
-		double deltaLeft = sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
+		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
 		double deltaRight = -sensors.rightEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
 		double forward = (deltaLeft + deltaRight) / 2;
 		double turn = (deltaRight - deltaLeft) / Constants.WHEELBASE_WIDTH;

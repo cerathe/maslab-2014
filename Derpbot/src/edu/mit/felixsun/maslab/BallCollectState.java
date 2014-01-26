@@ -26,7 +26,7 @@ public class BallCollectState extends State {
 		}
 		LinkedList<SimpleEntry<Integer, Integer>> theWay = nav.cleanUpNaive(naiveWay);
 		System.out.println(theWay);
-		myPath = new PathFollowState(0.1, theWay);
+		myPath = new PathFollowState(Constants.SPEED, theWay);
 		myBall = new BallFollowState();
 	}
 	
@@ -39,6 +39,7 @@ public class BallCollectState extends State {
 		// 1 - If we see a ball, go for it.
 		int result = myBall.step(nav.loc, sensors);
 		if (result == 1) {
+			System.out.println("Ball");
 			lastReturn = 1;
 			return 1;
 		}
@@ -46,6 +47,7 @@ public class BallCollectState extends State {
 		if (lastReturn == 1) {
 			newGoal(nav);
 		}
+		System.out.println("Wander");
 		result = myPath.step(nav, sensors);
 		if (result == 1) {
 			newGoal(nav);

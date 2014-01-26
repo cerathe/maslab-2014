@@ -56,7 +56,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = true;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -136,7 +136,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;

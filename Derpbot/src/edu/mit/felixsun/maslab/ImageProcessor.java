@@ -115,7 +115,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
-	    processedImage = findBalls(hsvImage, data);
+	    findBalls(hsvImage, data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -214,7 +214,7 @@ public class ImageProcessor {
 		 * Locates all the walls the camera can see.
 		 * Dumps to data.angles a hashmap of angle -> distance to wall at that angle.
 		 */
-		final int COLUMN_MARGIN = 5;
+		final int COLUMN_MARGIN = 2;
 		final int MIN_WALL_CENTER = hsvImage.height() / 2 - 50;
 		Mat processedImage = Mat.zeros(hsvImage.size(), hsvImage.type());
 		HashMap<Double, Double> angles = data.angles;
@@ -223,12 +223,11 @@ public class ImageProcessor {
         Mat colorMask = new Mat();
 		colorMask = findWhite(hsvImage);
         //dilate and erode, to clean up lines a little.
-		Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
-				new Point(0, 0), 1);
 		Imgproc.erode(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
-				new Point(0, 0), 1);
-        
-        //Separate into connected components
+				new Point(0, 0), 2);
+		Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
+				new Point(0, 0), 2);
+		//Separate into connected components
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         Mat hierarchy = new Mat();
         Imgproc.findContours(colorMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
