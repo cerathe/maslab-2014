@@ -185,7 +185,6 @@ public class Main {
 
 		comm.transmit();
 		BallCollectState ball = new BallCollectState(navigation);
-//		PathFollowState path = new PathFollowState(0.1,navigation.cleanUpNaive(navigation.naiveWallFollow(64,20,70,24)));
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -198,7 +197,6 @@ public class Main {
 			}
 //			System.out.println(res.getValue());
 			ball.step(navigation, sensors);
-//			path.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
 			comm.transmit();

@@ -94,7 +94,7 @@ public class Localization {
 			double wheelDeltaY = forward * Math.sin(oldPose.theta);
 			double newX = oldPose.x + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaX;
 			double newY = oldPose.y + rng.nextGaussian() * TRAVEL_DRIFT_SPEED * deltaT + wheelDeltaY;
-			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT;// + turn;
+			double newTheta = oldPose.theta + rng.nextGaussian() * TURN_DRIFT_SPEED * deltaT + turn;
 			if (newTheta > Math.PI) {
 				newTheta -= Math.PI*2;
 			} else if (newTheta < -Math.PI) {

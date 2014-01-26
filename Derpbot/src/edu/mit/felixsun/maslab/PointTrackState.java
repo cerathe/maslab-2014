@@ -8,7 +8,7 @@ public class PointTrackState extends State{
 	TurnState turnState = new TurnState();
 	double lastDiff;
 	
-	double acceptableAngle = 0.05;
+	double acceptableAngle = 0.15;
 	double driveSpeed;
 	double PGAIN = .0;
 
@@ -22,7 +22,7 @@ public class PointTrackState extends State{
 		Pose currentPose = new Pose(nav.loc.grid.robotX, nav.loc.grid.robotY, nav.loc.grid.robotTheta);
 		double xDiff = pt.getKey() - nav.loc.grid.robotX;
 		double yDiff = pt.getValue() - nav.loc.grid.robotY;
-//		System.out.format("%f %f \n", xDiff, yDiff);
+		System.out.format("Goal: %d %d Current: %f %f \n", pt.getKey(), pt.getValue(), currentPose.x, currentPose.y);
 		double pathAngle = Math.atan2(yDiff, xDiff);
 		double angleDiff = pathAngle - currentPose.theta;
 		angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
@@ -38,7 +38,7 @@ public class PointTrackState extends State{
 //		double integral;
 
 		double motorA, motorB;
-		System.out.println(angleDiff);
+//		System.out.println(angleDiff);
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
 			motorB = driveSpeed + angleDiff * PGAIN;
@@ -46,11 +46,11 @@ public class PointTrackState extends State{
 			sensors.rightDriveMotor.setSpeed(-motorB);
 		}
 		else if (angleDiff < 0){
-			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, 0.1);
+//			System.out.println("Turn A");
+			turnState.step(nav.loc, sensors, -0.5);
 		} else {
-			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, -0.1);
+//			System.out.println("Turn B");
+			turnState.step(nav.loc, sensors, 0.5);
 		}
 //		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		

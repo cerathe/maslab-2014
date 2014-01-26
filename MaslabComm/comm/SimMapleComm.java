@@ -43,8 +43,8 @@ public class SimMapleComm implements CommInterface {
 		sim.robotY += rng.nextGaussian() * 2;
 		sim.robotTheta += rng.nextGaussian() * 0.1;
 		this.sensors = sensors;
-//		balls.add(new SimpleEntry<Double, Double>(30.0, 40.0));
-//		balls.add(new SimpleEntry<Double, Double>(55.0, 40.0));
+		balls.add(new SimpleEntry<Double, Double>(30.0, 40.0));
+		balls.add(new SimpleEntry<Double, Double>(55.0, 40.0));
 		cameraPane = new DisplayWindow("Simulator Output", 600, 600);
 		
 	}
