@@ -22,6 +22,11 @@ public class BallSortState extends State {
 		//If we see Red, it's definitely red.
 		//If we see green we should remeasure 5 times.
 		led.setValue(true);
+		
+		double midAngle = (servo.getMaxAngle() + servo.getMinAngle())/2;
+		double maxAngle = servo.getMaxAngle()-5;
+		double minAngle = servo.getMinAngle()+5;
+		
 		//wait 1 sec  to let the photoresistor come to equilibrium.
 		try {
 		    Thread.sleep(1000);
@@ -34,8 +39,8 @@ public class BallSortState extends State {
 		//measure 5 times. Green returns green all 5 times, red has some error.
 		//but should return at least once.
 			//jiggle the ball--this tends to improve reading accuracy.
-			servo.setAngle(80);
-			servo.setAngle(84);
+			servo.setAngle(midAngle -5);
+			servo.setAngle(maxAngle +5);
 			if(res.getValue()>ballThresh){
 				existsBall = true;
 				if(res.getValue()<greenThresh){
@@ -44,7 +49,7 @@ public class BallSortState extends State {
 				}
 			}
 		}
-		servo.setAngle(82.5);
+		servo.setAngle(midAngle);
 		led.setValue(false);
 		if(!existsBall){
 			System.out.println("No ball :(");
@@ -55,14 +60,14 @@ public class BallSortState extends State {
 			if(isRed){
 				System.out.println("RED!");
 				//sort to one side
-				servo.setAngle(5);
-				servo.setAngle(82.5);
+				servo.setAngle(minAngle);
+				servo.setAngle(midAngle);
 			}
 			else{
 				System.out.println("GREEN!");
 				//sort to other side
-				servo.setAngle(160);
-				servo.setAngle(82.5);
+				servo.setAngle(maxAngle);
+				servo.setAngle(midAngle);
 			}
 			return 1;
 		}
