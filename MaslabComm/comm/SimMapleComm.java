@@ -57,9 +57,9 @@ public class SimMapleComm implements CommInterface {
 		/*
 		 * We cheat a little by taking in a Sensor object.
 		 */
-		leftEncoder = sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
+		leftEncoder = -sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
 		rightEncoder = sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS * TIMESTEP;
-		double leftD = leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
+		double leftD = -leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double rightD = -rightEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double deltaForward = (leftD + rightD) / 2;
 		double deltaTurn = (rightD - leftD) / Constants.WHEELBASE_WIDTH * TURN_DISCOUNT;
