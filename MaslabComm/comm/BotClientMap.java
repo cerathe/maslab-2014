@@ -117,8 +117,9 @@ public class BotClientMap {
 	
 	public static BotClientMap getDefaultMap() {
 		String mapString = "22.0:2.5,0.7,3:";
-		mapString += "0,0,0,2,N:0,2,1,2,N:1,2,2,3,N:2,3,3,3,N:3,3,3,2,N:3,2,2,1,N:";
+		mapString += "0,0,0,1,N:0,1,0,2,R:0,2,1,2,N:1,2,2,3,N:2,3,3,3,N:3,3,3,2,N:3,2,2,1,N:";
 		mapString += "3,3,4,3,N:4,3,4,1,N:4,1,3,0,N:3,0,0,0,N:";
+		mapString += "3,3,3,2,N:3,2,2,1,N:";
 		BotClientMap m = new BotClientMap();
 		m.load(mapString);
 		return m;

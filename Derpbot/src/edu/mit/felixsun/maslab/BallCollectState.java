@@ -9,7 +9,10 @@ public class BallCollectState extends State {
 	Random rng = new Random();
 	PathFollowState myPath;
 	BallFollowState myBall;
+	DriveStraightState backState;
+	TurnState turnState;
 	int lastReturn = 0;
+	int stuckCount = 0;
 	
 	public BallCollectState(Navigation nav) {
 		newGoal(nav);
@@ -28,6 +31,8 @@ public class BallCollectState extends State {
 		System.out.println(theWay);
 		myPath = new PathFollowState(Constants.SPEED, theWay);
 		myBall = new BallFollowState();
+		backState = new DriveStraightState();
+		turnState = new TurnState();
 	}
 	
 	public int step(Navigation nav, Sensors sensors){
@@ -36,6 +41,29 @@ public class BallCollectState extends State {
 		 * 1 - following ball
 		 * 0 - looking
 		 */
+		// 0 - If stuck, back up for a bit, then choose a new goal.
+		if (nav.loc.stuck) {
+			stuckCount = 60;
+		}
+		
+		if (stuckCount > 20) {
+			// Stuck - back up.
+			backState.step(nav.loc, sensors, -10);
+			stuckCount--;
+			return 0;
+		}
+		
+		if (stuckCount > 0) {
+			// Then turn for a bit.
+			turnState.step(nav.loc, sensors, 1);
+			stuckCount--;
+			// At the very end, re-nav.
+			if (stuckCount == 0) {
+				newGoal(nav);
+			}
+			return 0;
+		}
+		
 		// 1 - If we see a ball, go for it.
 		int result = myBall.step(nav.loc, sensors);
 		if (result == 1) {
