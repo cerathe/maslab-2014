@@ -56,8 +56,11 @@ public class Encoder extends Sensor {
 	}
 	
 	public void fakeUpdate(double deltaAngle) {
+		long currentTime = System.nanoTime();
 		deltaTicks = (int) (deltaAngle * GEAR_REDUCTION * TICKS_PER_REV / 2 / Math.PI);
 		ticks += deltaTicks;
+		deltaTime = currentTime - lastUpdateTime;
+		lastUpdateTime = currentTime;
 	}
 
 	@Override
