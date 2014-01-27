@@ -19,6 +19,7 @@ import java.util.Random;
 
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
+import devices.actuators.Servo1800A;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
 import devices.sensors.Photoresistor;
@@ -167,6 +168,8 @@ public class Main {
 		
 		sensors.photoresistor = new AnalogInput(12);
 		sensors.led = new DigitalOutput(9);
+		//TODO: Connect sorting servo actually and fix Servo type and pin.
+		sensors.sorter = new Servo1800A(8);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -183,6 +186,7 @@ public class Main {
 		comm.registerDevice(ground2);
 		comm.registerDevice(ground3);
 		comm.registerDevice(ground4);
+		
 		comm.registerDevice(sensors.photoresistor);
 		comm.registerDevice(sensors.led);
 		comm.initialize();
@@ -194,6 +198,7 @@ public class Main {
 
 		comm.transmit();
 		BallCollectState ball = new BallCollectState(navigation);
+//		BallSortState sort = new BallSortState(sensors);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
 		while (true) {
@@ -209,6 +214,11 @@ public class Main {
 			System.out.println(sensors.leftEncoder.getAngularSpeed());
 
 			ball.step(navigation, sensors);
+<<<<<<< HEAD
+=======
+//			sort.step(2400, 2800);
+//			straight.step(localization, sensors, 12);
+>>>>>>> 367e19fadc10e81c99f04f6e7d22246ea05d966c
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 //			cameraPane.updateWindow(finalMap);
 			comm.transmit();
