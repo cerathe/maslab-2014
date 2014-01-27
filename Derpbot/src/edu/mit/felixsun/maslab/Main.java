@@ -209,7 +209,6 @@ public class Main {
 			System.out.println(sensors.leftEncoder.getAngularSpeed());
 
 			ball.step(navigation, sensors);
-//			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 //			cameraPane.updateWindow(finalMap);
 			comm.transmit();

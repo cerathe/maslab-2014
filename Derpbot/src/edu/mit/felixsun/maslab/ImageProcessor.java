@@ -123,6 +123,7 @@ public class ImageProcessor {
 
 	
 	static Mat findBalls(Mat hsvImage, cvData data) {
+		int MIN_BALL_HEIGHT = 250;
 		// Find balls - both red and green in one shot.
 //		Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
 //		Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
@@ -155,8 +156,8 @@ public class ImageProcessor {
 			if (1.0 * blobArea / boundingRect.area() < MIN_FILL_PROPORTION){
 				continue;
 			}
-			// Is the rectangle large enough?
-			if (blobArea < MIN_BLOB_AREA) {
+			// Is the rectangle large enough and low enough?
+			if (blobArea < MIN_BLOB_AREA || boundingRect.y < MIN_BALL_HEIGHT) {
 				continue;
 			}
 			// If we get this far, we are good.  See if it is lower than the lowest so far.

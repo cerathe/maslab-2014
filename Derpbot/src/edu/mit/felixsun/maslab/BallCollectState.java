@@ -22,6 +22,7 @@ public class BallCollectState extends State {
 		SimpleEntry<Integer,Integer> iPos = new SimpleEntry<Integer,Integer>((int) nav.loc.grid.robotX,(int) nav.loc.grid.robotY);
 		LinkedList<SimpleEntry<Integer, Integer>> naiveWay = new LinkedList<SimpleEntry<Integer, Integer>>();
 		while (naiveWay.size() == 0) {
+			System.out.println("Making new path");
 			int destX = rng.nextInt((int) nav.loc.grid.maxX);
 			int destY = rng.nextInt((int) nav.loc.grid.maxY);
 			SimpleEntry<Integer,Integer> destination = new SimpleEntry<Integer,Integer>(destX, destY);
@@ -43,10 +44,10 @@ public class BallCollectState extends State {
 		 */
 		// 0 - If stuck, back up for a bit, then choose a new goal.
 		if (nav.loc.stuck) {
-			stuckCount = 60;
+			stuckCount = 30;
 		}
 		
-		if (stuckCount > 20) {
+		if (stuckCount > 10) {
 			// Stuck - back up.
 			backState.step(nav.loc, sensors, -10);
 			stuckCount--;
