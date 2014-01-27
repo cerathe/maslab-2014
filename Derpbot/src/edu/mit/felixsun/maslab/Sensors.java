@@ -6,6 +6,7 @@ import devices.actuators.Servo;
 import devices.actuators.Servo1800A;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
+import devices.actuators.PWMOutput;
 
 public class Sensors {
 	public Encoder leftEncoder;
@@ -15,4 +16,8 @@ public class Sensors {
 	public DigitalOutput led;
 	public AnalogInput photoresistor;
 	public Servo sorter;
+	public PWMOutput spiralPWM;
+	public PWMOutput rollerPWM;
+	public DigitalOutput spiralDirection;
+	public DigitalOutput rollerDirection;
 }

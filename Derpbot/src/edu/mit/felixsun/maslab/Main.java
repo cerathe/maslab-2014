@@ -19,6 +19,7 @@ import java.util.Random;
 
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
+import devices.actuators.PWMOutput;
 import devices.actuators.Servo1800A;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
@@ -57,7 +58,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = true;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -137,7 +138,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -170,6 +171,10 @@ public class Main {
 		sensors.led = new DigitalOutput(9);
 		//TODO: Connect sorting servo actually and fix Servo type and pin.
 		sensors.sorter = new Servo1800A(8);
+		sensors.rollerPWM = new PWMOutput(11);
+		sensors.rollerDirection = new DigitalOutput(36);
+		sensors.spiralPWM = new PWMOutput(14);
+		sensors.spiralDirection = new DigitalOutput(13);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -177,7 +182,10 @@ public class Main {
 		} else {
 			comm = new SimMapleComm(null, sensors);
 		}
-
+		// 14 - PWM spiral
+		// 13 - DIR spiral
+		// 
+		System.out.println("B");
 		comm.registerDevice(sensors.leftDriveMotor);
 		comm.registerDevice(sensors.rightDriveMotor);
 		comm.registerDevice(sensors.leftEncoder);
@@ -189,13 +197,21 @@ public class Main {
 		
 		comm.registerDevice(sensors.photoresistor);
 		comm.registerDevice(sensors.led);
+		comm.registerDevice(sensors.rollerDirection);
+		comm.registerDevice(sensors.rollerPWM);
+		comm.registerDevice(sensors.spiralDirection);
+		comm.registerDevice(sensors.spiralPWM);
 		comm.initialize();
+		System.out.println("A");
 		
 		ground1.setValue(false);
 		ground2.setValue(false);
 		ground3.setValue(false);
 		ground4.setValue(false);
-
+		sensors.rollerDirection.setValue(false);
+		sensors.rollerPWM.setValue(1);
+		sensors.spiralPWM.setValue(0.4);
+		sensors.spiralDirection.setValue(true);
 		comm.transmit();
 		BallCollectState ball = new BallCollectState(navigation);
 //		BallSortState sort = new BallSortState(sensors);
@@ -211,7 +227,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			ball.step(navigation, sensors);
+//			ball.step(navigation, sensors);
 //			sort.step(2400, 2800);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);

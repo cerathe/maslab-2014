@@ -22,11 +22,7 @@ public class BallCollectState extends State {
 		SimpleEntry<Integer,Integer> iPos = new SimpleEntry<Integer,Integer>((int) nav.loc.grid.robotX,(int) nav.loc.grid.robotY);
 		LinkedList<SimpleEntry<Integer, Integer>> naiveWay = new LinkedList<SimpleEntry<Integer, Integer>>();
 		while (naiveWay.size() == 0) {
-<<<<<<< HEAD
 			System.out.println("Making new path");
-=======
-			System.out.println("Pathing");
->>>>>>> 1d1859a2c6ae1d44271f648db1075c1fc7f8de70
 			int destX = rng.nextInt((int) nav.loc.grid.maxX);
 			int destY = rng.nextInt((int) nav.loc.grid.maxY);
 			SimpleEntry<Integer,Integer> destination = new SimpleEntry<Integer,Integer>(destX, destY);
