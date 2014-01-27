@@ -56,7 +56,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = false;
+	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -194,9 +194,9 @@ public class Main {
 
 		comm.transmit();
 		led.setValue(true);
-//		BallCollectState ball = new BallCollectState(navigation);
-		DriveStraightState straight = new DriveStraightState();
-		TurnState turn = new TurnState();
+		BallCollectState ball = new BallCollectState(navigation);
+//		DriveStraightState straight = new DriveStraightState();
+//		TurnState turn = new TurnState();
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -216,10 +216,10 @@ public class Main {
 						System.out.println("A Red Ball!");
 					}
 			}
-//			ball.step(navigation, sensors);
-			straight.step(localization, sensors, 12);
+			ball.step(navigation, sensors);
+//			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
-			cameraPane.updateWindow(finalMap);
+//			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
 			try {

@@ -25,17 +25,17 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ImageProcessor {
-	static int greenLowerH = 70;
-	static int greenUpperH = 100;
+	static int greenLowerH = 40;
+	static int greenUpperH = 80;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
 	static int blueUpperH = 120;
 	static int yellowLowerH = 25;
 	static int yellowUpperH = 35;
-	static int lowerS = 80;
+	static int lowerS = 60;
 	static int lowerV = 40;
-	static double OK_RATIO = 2.0;
+	static double OK_RATIO = 2.5;
 	static double MIN_FILL_PROPORTION = 0.2;
 	static double MIN_BLOB_AREA = 20;
 	static Scalar GREEN = new Scalar(0, 255, 0);
@@ -82,7 +82,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 50, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 100), new Scalar(180, 120, 255), output);
 		return output;
 	}
 	
@@ -115,7 +115,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
-	    findBalls(hsvImage, data);
+	    processedImage = findBalls(hsvImage, data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -141,7 +141,7 @@ public class ImageProcessor {
 		// - Large enough.
 		int bestBlob = -1;
 		Rect bestBoundingRect = new Rect();
-		double bestHeight = 1000;
+		double bestHeight = 0;
 		for (int i = 0; i < contours.size(); i++) {
 			// Make a rectangle.
 			Rect boundingRect = Imgproc.boundingRect(contours.get(i));
@@ -160,9 +160,9 @@ public class ImageProcessor {
 				continue;
 			}
 			// If we get this far, we are good.  See if it is lower than the lowest so far.
-			if (boundingRect.y - boundingRect.height < bestHeight){
+			if (boundingRect.y > bestHeight){
 				bestBlob = i;
-				bestHeight = boundingRect.y - boundingRect.height;
+				bestHeight = boundingRect.y;
 				bestBoundingRect = boundingRect;
 			}
 		}
