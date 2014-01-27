@@ -69,7 +69,7 @@ public class Localization {
 		double turn = (deltaRight - deltaLeft) / Constants.WHEELBASE_WIDTH;
 		forwardSpeed = forward / deltaT;
 		turnSpeed = turn / deltaT;
-		
+
 		// Are we stuck?
 		if ((Math.abs(sensors.leftDriveMotor.lastSet) > 0.01 || 
 				Math.abs(sensors.rightDriveMotor.lastSet) > 0.01) &&
@@ -79,7 +79,7 @@ public class Localization {
 		} else {
 			stuckCount = 0;
 		}
-		if (stuckCount > 30) {
+		if (stuckCount > 40) {
 			stuck = true;
 			System.out.println("Oh fuck, we're stuck.");
 		} else {
