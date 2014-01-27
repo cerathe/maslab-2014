@@ -166,7 +166,7 @@ public class Main {
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
 		AnalogInput res = new AnalogInput(12);
-		DigitalOutput led = new DigitalOutput(13);
+		DigitalOutput led = new DigitalOutput(9);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -206,6 +206,14 @@ public class Main {
 				localization.update(data, sensors);
 			}
 			System.out.println(res.getValue());
+			if(res.getValue()>2600){
+					if(res.getValue()>3000){
+						System.out.println("A Green Ball!");
+					}
+					else{
+						System.out.println("A Red Ball!");
+					}
+			}
 //			ball.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
