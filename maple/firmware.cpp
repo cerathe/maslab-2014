@@ -1,12 +1,21 @@
 #include <stdlib.h>
 #include <wirish/wirish.h>
 
+#include "libraries/Servo/Servo.h"
+
 /* features 
  [ ] dagu motor controller
+<<<<<<< HEAD
  [x] cytron motor controller
  [ ] encoder
  [x] gyro
  [ ] servo
+=======
+ [X] cytron motor controller
+ [X] encoder
+ [X] gyro
+ [X] servo
+>>>>>>> cc10732... added support for servos
  [X] ultrasonic
  [x] IR
  [x] analog read
@@ -40,6 +49,14 @@ HardwareSPI spi2(2);
 uint8 serialRead() {
     while (!SerialUSB.available());
     return SerialUSB.read();
+}
+
+// MSB first
+uint16 serialRead16Bit() {
+    uint16 out = serialRead();
+    out <<= 8;
+    out += serialRead();
+    return out;
 }
 
 
@@ -139,6 +156,7 @@ public:
 
 #define CYTRON_CODE 'C'
 #define GYROSCOPE_CODE 'Y'
+#define SERVO_CODE 'V'
 #define ULTRASONIC_CODE 'U'
 
 
@@ -315,6 +333,44 @@ public:
   }
 };
 
+<<<<<<< HEAD
+=======
+
+//-----------------------------------
+// Servo
+//-----------------------------------
+
+class ServoMotor : public SettableDevice {
+private:    
+  uint8 pin;
+  Servo servo;
+  
+public:
+  ServoMotor() {
+    pin = serialRead();
+    uint16 minPulseWidth = serialRead16Bit();
+    uint16 maxPulseWidth = serialRead16Bit();
+    uint16 minAngle = serialRead16Bit();
+    uint16 maxAngle = serialRead16Bit();
+    servo.attach(pin, minPulseWidth, maxPulseWidth, minAngle, maxAngle);
+  }
+  
+  ~ServoMotor() {
+    servo.detach();
+  }
+
+  void set() {
+    uint16 pulseWidth = serialRead16Bit();
+    //SerialUSB.print(pulseWidth);
+    servo.writeMicroseconds(pulseWidth);
+  }
+};
+
+//-----------------------------------
+// Ultrasonic range finder
+//-----------------------------------
+
+>>>>>>> cc10732... added support for servos
 void ultrasonicISR(uint8 index);
 
 void ultrasonicISR0() { ultrasonicISR(0); }
@@ -367,6 +423,10 @@ public:
     
     val = 0;
   }
+  
+  ~Ultrasonic() {
+    detachInterrupt(echoPin);
+  }
 
   void localISR() {
     if (isEchoLow) {
@@ -412,6 +472,92 @@ void ultrasonicISR(uint8 index) {
 }
 
 
+<<<<<<< HEAD
+=======
+//-----------------------------------
+// Encoder (Pololu 29:1 64CPR)
+//-----------------------------------
+
+void encoderISR(uint8 index);
+
+void encoderISR0() { encoderISR(0); }
+void encoderISR1() { encoderISR(1); }
+void encoderISR2() { encoderISR(2); }
+void encoderISR3() { encoderISR(3); }
+void encoderISR4() { encoderISR(4); }
+void encoderISR5() { encoderISR(5); }
+void encoderISR6() { encoderISR(6); }
+void encoderISR7() { encoderISR(7); }
+
+typedef void (*EncoderISRPtr)();
+EncoderISRPtr encoderISRList[8] = {&encoderISR0,
+                                   &encoderISR1,
+                                   &encoderISR2,
+                                   &encoderISR3,
+                                   &encoderISR4,
+                                   &encoderISR5,
+                                   &encoderISR6,
+                                   &encoderISR7};
+                                                
+class Encoder;
+
+Encoder *encoders[8];
+
+class Encoder : public SampleableDevice {
+private:
+  uint8 pinA;
+  uint8 pinB;
+
+  volatile uint16 ticks;
+
+public:
+  Encoder() {
+    pinA = serialRead();
+    pinB = serialRead();
+    
+    pinMode(pinA, INPUT);
+    pinMode(pinB, INPUT);
+    
+    encoders[encoderCount] = this;
+    attachInterrupt(pinA, *(encoderISRList[encoderCount]), RISING);
+    encoderCount++;
+    
+    ticks = 0;
+  }
+  
+  ~Encoder() {
+    detachInterrupt(pinA);
+  }
+
+  void localISR() {
+  // TODO: atomicize
+    if (digitalRead(pinB)) {
+        ticks--;
+    } else {
+        ticks++;
+    }
+  }
+
+  void sample() { }
+
+  void get() {
+    // TODO: atomicize
+    //uint16 temp = __sync_fetch_and_nand(&ticks, 0); // doesn't work in arm-...-gcc?
+    uint16 temp = ticks;
+    ticks = 0;
+    uint8 msb = temp >> 8;
+    uint8 lsb = (uint8) temp;
+    SerialUSB.write(msb);
+    SerialUSB.write(lsb);
+  }
+};
+
+void encoderISR(uint8 index) {
+  encoders[index]->localISR();
+}
+
+
+>>>>>>> cc10732... added support for servos
 //===================================
 // LOGIC
 //===================================
@@ -475,6 +621,9 @@ void firmwareInit() {
       break;
     case GYROSCOPE_CODE:
       deviceList.add(new Gyroscope());
+      break;
+    case SERVO_CODE:
+      deviceList.add(new ServoMotor());
       break;
     case ULTRASONIC_CODE:
       deviceList.add(new Ultrasonic());
