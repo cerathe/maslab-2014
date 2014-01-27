@@ -4,8 +4,8 @@ public class TurnState extends State {
 	/*
 	 * Gets the robot to turn in place.
 	 */
-	static final double FORWARD_GAIN = 0.01; // Motor units / (inch/second)
-	static final double TURN_GAIN = 0.01;	 // Motor units / (radian/second)
+	static final double FORWARD_GAIN = 0.001; // Motor units / (inch/second)
+	static final double TURN_GAIN = 0.001;	 // Motor units / (radian/second)
 	
 	double lastLeft;
 	double lastRight;
@@ -25,15 +25,15 @@ public class TurnState extends State {
 		double rightMotor = 0;
 		if (lastRate != rate) {
 			// New problem.  (Not sure what to do here)
-			leftMotor = -rate;
-			rightMotor = rate;
+			leftMotor = -rate/10;
+			rightMotor = rate/10;
 			lastRate = rate;
 			
 		} else {
 			// Left motor stabilizes turn rate.
 			// Right motor makes sure robot turns in place.
-			rightMotor = lastRight - FORWARD_GAIN * loc.forwardSpeed;
-			leftMotor = lastLeft + TURN_GAIN * (loc.turnSpeed - rate);
+			rightMotor = lastRight - FORWARD_GAIN * rate * loc.forwardSpeed;
+			leftMotor = lastLeft + TURN_GAIN * rate * (loc.turnSpeed - rate);
 		}
 		lastLeft = leftMotor;
 		lastRight = rightMotor;

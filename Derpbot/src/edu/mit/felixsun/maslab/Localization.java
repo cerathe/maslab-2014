@@ -13,8 +13,8 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 3;			// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.3;			// Radians / second
+	public final static double TRAVEL_DRIFT_SPEED = 0;//3;			// Inches / second
+	public final static double TURN_DRIFT_SPEED = 0;//0.3;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.02;
@@ -64,7 +64,7 @@ public class Localization {
 		
 		// Calculate drift using encoders.
 		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
-		double deltaRight = -sensors.rightEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
+		double deltaRight = sensors.rightEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
 		double forward = (deltaLeft + deltaRight) / 2;
 		double turn = (deltaRight - deltaLeft) / Constants.WHEELBASE_WIDTH;
 		forwardSpeed = forward / deltaT;

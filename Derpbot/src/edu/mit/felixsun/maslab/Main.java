@@ -136,7 +136,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -194,8 +194,9 @@ public class Main {
 
 		comm.transmit();
 		led.setValue(true);
-		BallCollectState ball = new BallCollectState(navigation);
+//		BallCollectState ball = new BallCollectState(navigation);
 		DriveStraightState straight = new DriveStraightState();
+		TurnState turn = new TurnState();
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -206,7 +207,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			System.out.println(res.getValue());
+			System.out.println(sensors.leftEncoder.getAngularSpeed());
 			if(res.getValue()>2600){
 					if(res.getValue()>3000){
 						System.out.println("A Green Ball!");
@@ -215,7 +216,8 @@ public class Main {
 						System.out.println("A Red Ball!");
 					}
 			}
-			ball.step(navigation, sensors);
+//			ball.step(navigation, sensors);
+			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
 			comm.transmit();

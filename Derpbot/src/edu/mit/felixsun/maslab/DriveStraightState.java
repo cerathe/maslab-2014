@@ -4,8 +4,8 @@ public class DriveStraightState extends State {
 	double lastLeft = 0;
 	double lastRight = 0;
 	double lastSpeed = 0;
-	final double FORWARD_GAIN = 0.1;
-	final double TURN_GAIN = 0.1;
+	final double FORWARD_GAIN = 0.002;
+	final double TURN_GAIN = 0.01;
 	public DriveStraightState() {
 	}
 	
@@ -24,8 +24,10 @@ public class DriveStraightState extends State {
 			lastSpeed = speed;
 			
 		} else {
-			rightMotor = lastRight + FORWARD_GAIN * (speed - loc.forwardSpeed);
-			leftMotor = lastLeft + TURN_GAIN * loc.turnSpeed;
+			double deltaForward = FORWARD_GAIN * (speed - loc.forwardSpeed);
+			double deltaTurn = TURN_GAIN * loc.turnSpeed;
+			rightMotor = lastRight + deltaForward - deltaTurn;
+			leftMotor = lastLeft + deltaForward + deltaTurn;
 		}
 		lastLeft = leftMotor;
 		lastRight = rightMotor;
