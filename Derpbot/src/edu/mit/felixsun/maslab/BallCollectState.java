@@ -22,6 +22,7 @@ public class BallCollectState extends State {
 		SimpleEntry<Integer,Integer> iPos = new SimpleEntry<Integer,Integer>((int) nav.loc.grid.robotX,(int) nav.loc.grid.robotY);
 		LinkedList<SimpleEntry<Integer, Integer>> naiveWay = new LinkedList<SimpleEntry<Integer, Integer>>();
 		while (naiveWay.size() == 0) {
+			System.out.println("Pathing");
 			int destX = rng.nextInt((int) nav.loc.grid.maxX);
 			int destY = rng.nextInt((int) nav.loc.grid.maxY);
 			SimpleEntry<Integer,Integer> destination = new SimpleEntry<Integer,Integer>(destX, destY);
