@@ -165,8 +165,8 @@ public class Main {
 		DigitalOutput ground3 = new DigitalOutput(19);
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
-		AnalogInput res = new AnalogInput(12);
-		DigitalOutput led = new DigitalOutput(9);
+		sensors.photoresistor = new AnalogInput(12);
+		sensors.led = new DigitalOutput(9);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -183,8 +183,8 @@ public class Main {
 		comm.registerDevice(ground2);
 		comm.registerDevice(ground3);
 		comm.registerDevice(ground4);
-		comm.registerDevice(res);
-		comm.registerDevice(led);
+		comm.registerDevice(sensors.photoresistor);
+		comm.registerDevice(sensors.led);
 		comm.initialize();
 		
 		ground1.setValue(false);
@@ -193,7 +193,6 @@ public class Main {
 		ground4.setValue(false);
 
 		comm.transmit();
-		led.setValue(true);
 		BallCollectState ball = new BallCollectState(navigation);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
@@ -208,14 +207,7 @@ public class Main {
 				localization.update(data, sensors);
 			}
 			System.out.println(sensors.leftEncoder.getAngularSpeed());
-			if(res.getValue()>2600){
-					if(res.getValue()>3000){
-						System.out.println("A Green Ball!");
-					}
-					else{
-						System.out.println("A Red Ball!");
-					}
-			}
+
 			ball.step(navigation, sensors);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
