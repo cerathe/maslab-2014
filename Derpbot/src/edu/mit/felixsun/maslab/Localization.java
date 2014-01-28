@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 import java.util.Map.Entry;
 
@@ -22,16 +23,28 @@ public class Localization {
 	
 	BotClientMap map;
 	public SparseGrid grid;
-	public ArrayList<Pose> robotPositions;
+	public List<Pose> robotPositions;
 	public Entry<Double, Double> ballPolarLoc;	// Just pass this on for now.
 	public double forwardSpeed;
 	public double turnSpeed;
 	public boolean stuck;
+	public boolean relocalize = false;		// If this is set to true, we start from scratch and relocalize.
 	double normalization;
 	long lastUpdateTime;
 	int stuckCount;
 	Random rng;
 
+	class ProbCompare implements Comparator<Pose> {
+		public int compare(Pose a, Pose b) {
+			if (a.prob > b.prob) {
+				return -1;
+			} else if (a.prob < b.prob) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
+	}
 	
 	public Localization(cvData data) {
 		map = BotClientMap.getDefaultMap();
@@ -53,12 +66,43 @@ public class Localization {
 		lastUpdateTime = System.nanoTime();
 	}
 	
+	void relocalize(cvData data) {
+		/*
+		 * Rebuilds the localization data from scratch.  Call this if we get really lost.
+		 * Kind of computationally intensive.
+		 * - Maybe we need to rethink this?
+		 */
+		int RELOCALIZE_PARTICLE_COUNT = 5000;
+		ArrayList<Pose> hypotheses = new ArrayList<Pose>();
+		// Make a whole bunch of hypotheses.
+		for (int i=0; i<RELOCALIZE_PARTICLE_COUNT; i++) {
+			double angle = 2*Math.PI*rng.nextDouble() - Math.PI;
+			double x = rng.nextDouble() * grid.maxX;
+			double y = rng.nextDouble() * grid.maxY;
+			double prob = grid.stateLogProb(data.angles, x, y, angle);
+			hypotheses.add(new Pose(x, y, angle, prob));
+		}
+		Collections.sort(hypotheses, new ProbCompare());
+		robotPositions = hypotheses.subList(0, PARTICLE_COUNT);
+		Pose bestGuess = robotPositions.get(0);
+		grid.robotX = bestGuess.x;
+		grid.robotY = bestGuess.y;
+		grid.robotTheta = bestGuess.theta;
+	}
+	
 	public void update(cvData data, Sensors sensors) {
 		
 		this.ballPolarLoc = data.ballPolarLoc;
 		if (data.angles.size() == 0) {
 			return;
 		}
+		
+		if (relocalize) {
+			relocalize(data);
+			relocalize = false;
+			return;
+		}
+		
 		double deltaT = (double) (System.nanoTime() - lastUpdateTime) / 1000000000;
 		lastUpdateTime = System.nanoTime();
 		
@@ -112,17 +156,6 @@ public class Localization {
 		}
 		
 		// Delete the unlikely particles.  Clone the likely particles.
-		class ProbCompare implements Comparator<Pose> {
-			public int compare(Pose a, Pose b) {
-				if (a.prob > b.prob) {
-					return -1;
-				} else if (a.prob < b.prob) {
-					return 1;
-				} else {
-					return 0;
-				}
-			}
-		}
 		Collections.sort(robotPositions, new ProbCompare());
 		for (int i=PRUNED_COUNT; i<PARTICLE_COUNT; i++) {
 			robotPositions.set(i, robotPositions.get(i % PRUNED_COUNT));

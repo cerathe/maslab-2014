@@ -20,6 +20,12 @@ public class Navigation {
 		//up to the first obstruction.
 		double xint;
 		double yint;
+		boolean startInVoid = false;
+		if(!loc.grid.allowedSpace(x1,y1)){
+			startInVoid = true;
+		}
+		
+		//figure out slopes
 		if (x2 == x1){
 			xint = 0;
 			yint = y2>y1? 1:-1;
@@ -39,6 +45,8 @@ public class Navigation {
 				yint = y2>y1? 1:-1;
 			}
 		}
+		
+		//make the path
 		LinkedList<SimpleEntry<Integer,Integer>> path = new LinkedList<SimpleEntry<Integer,Integer>>();
 		path.add(new SimpleEntry<Integer,Integer>(x1,y1));
 		boolean term = false;
@@ -47,15 +55,23 @@ public class Navigation {
 		while(!term){
 			x = x+xint;
 			y = y+yint;
-			if((int)x == x2){
-				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
-				term = true;
-			}
-			else if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
-				term=true;
+			if(!startInVoid){
+				if((int)x == x2){
+					path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
+					term = true;
+				}
+				else if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
+					term=true;
+				}
+				else{
+					path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
+				}
 			}
 			else{
 				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
+				if(loc.grid.allowedSpace((int)x, (int)y)){
+					startInVoid = false;
+				}
 			}
 		}
 		return path;

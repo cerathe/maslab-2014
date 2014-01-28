@@ -139,7 +139,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = false;
+	final static boolean SIMULATE = true;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -217,7 +217,7 @@ public class Main {
 		sensors.spiralDirection.setValue(true);
 
 		comm.transmit();
-//		BallCollectState ball = new BallCollectState(navigation);
+		BallCollectState ball = new BallCollectState(navigation);
 		BallSortState sort = new BallSortState(sensors);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
@@ -231,8 +231,8 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			ball.step(navigation, sensors);
 			sort.step(3300, 3400);
+			ball.step(navigation, sensors);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
