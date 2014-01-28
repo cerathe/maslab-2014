@@ -27,6 +27,8 @@ import org.opencv.imgproc.Imgproc;
 public class ImageProcessor {
 	static int greenLowerH = 40;
 	static int greenUpperH = 80;
+	static int tealLowerH = 90;
+	static int tealUpperH = 110;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
@@ -35,14 +37,12 @@ public class ImageProcessor {
 	static int yellowUpperH = 35;
 	static int lowerS = 60;
 	static int lowerV = 40;
-	static double OK_RATIO = 2.5;
-	static double MIN_FILL_PROPORTION = 0.2;
-	static double MIN_BLOB_AREA = 20;
 	static Scalar GREEN = new Scalar(0, 255, 0);
     static Scalar YELLOW = new Scalar(0,255,255);
     static Scalar RED = new Scalar(0,0,255);
     static Scalar BLUE = new Scalar(255,0,0);
     
+    // Wall polygon approximation stuff.
     static double POLYAPPROXEPSILON = 3;
     static double MIN_GOOD_AREA = 200;
     	
@@ -82,7 +82,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 100), new Scalar(180, 120, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 120), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -114,25 +114,27 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-		processedImage = findWallsPoly(hsvImage, blueLowerH, blueUpperH, data, 1);
-	    processedImage = findBalls(hsvImage, data);
+		processedImage = findWallsPoly(hsvImage, data, 1);
+	    processedImage = findBalls(hsvImage, data, greenLowerH, greenUpperH);
+	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
 	}
 
 	
-	static Mat findBalls(Mat hsvImage, cvData data) {
+	static Mat findBalls(Mat hsvImage, cvData data, int lowerH, int upperH) {
 		int MIN_BALL_HEIGHT = 250;
-		// Find balls - both red and green in one shot.
-//		Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
-//		Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
-//		Mat colorMask = new Mat();
-//		Core.add(redMask, greenMask, colorMask);
-		// Only green balls for now.  (Too many red things in room.)
-		Mat colorMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+		double BALL_RATIO = 2;
+		double MIN_FILL_PROPORTION = 0.2;
+		double MIN_BALL_AREA = 20;
+		// Find balls
+		Mat colorMask = colorFilter(hsvImage, lowerH, upperH);
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		// Also show the masked input.
+		Mat processedImage = new Mat();
+		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
 		Mat hierarchy = new Mat();
 		Imgproc.findContours(colorMask.clone(), contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 		// Look for the "best" blob
@@ -148,7 +150,7 @@ public class ImageProcessor {
 			Rect boundingRect = Imgproc.boundingRect(contours.get(i));
 			// Is the rectangle roughly square?
 			double height_ratio = 1.0 * boundingRect.width / boundingRect.height;
-			if (! ((1.0 / OK_RATIO < height_ratio) && (height_ratio < OK_RATIO))){
+			if (! ((1.0 / BALL_RATIO < height_ratio) && (height_ratio < BALL_RATIO))){
 				continue;
 			}
 			// Is the rectangle filled enough?
@@ -156,10 +158,11 @@ public class ImageProcessor {
 			if (1.0 * blobArea / boundingRect.area() < MIN_FILL_PROPORTION){
 				continue;
 			}
-			// Is the rectangle large enough and low enough?
-			if (blobArea < MIN_BLOB_AREA || boundingRect.y < MIN_BALL_HEIGHT) {
+			// Is the rectangle large enough?
+			if (blobArea < MIN_BALL_AREA || boundingRect.y < MIN_BALL_HEIGHT) {
 				continue;
 			}
+			
 			// If we get this far, we are good.  See if it is lower than the lowest so far.
 			if (boundingRect.y > bestHeight){
 				bestBlob = i;
@@ -167,10 +170,6 @@ public class ImageProcessor {
 				bestBoundingRect = boundingRect;
 			}
 		}
-		// Also show the masked input.
-		Mat processedImage = new Mat();
-		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
-		
 		// If we didn't find a ball, just stop now.
 		if (bestBlob == -1) {
 			return processedImage;
@@ -184,11 +183,55 @@ public class ImageProcessor {
 		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
 		double distance = distanceConvert(approxDiam, ballDiameter, angularPos);
 		Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);
-		synchronized(data) {
-			data.ballPolarLoc = polarLoc;
-		}
+		data.ballPolarLoc = polarLoc;
 
 		return processedImage;
+	}
+	
+	static Mat findStripe(Mat hsvImage, cvData data, int lowerH, int upperH, int landmarkIndex) {
+		// This is a potential wall stripe.
+		// Is the rectangle filled enough?
+		double MIN_STRIPE_AREA = 100;	// For red and green wall stripes.
+		double COLORED_STRIPE_HEIGHT = 2;
+		int MAX_STRIPE_HEIGHT = 250;
+		double MIN_FILL_PROPORTION = 0.2;
+		
+		List<Entry<Double, Double>> stripes = new ArrayList<Entry<Double, Double>>();
+		Mat colorMask = colorFilter(hsvImage, lowerH, upperH);
+		// Find blobs of color
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		// Also show the masked input.
+		Mat processedImage = new Mat();
+		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
+		Mat hierarchy = new Mat();
+		Imgproc.findContours(colorMask.clone(), contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+		// Look for blobs that are
+		// - Filled enough
+		// - Large enough.
+		for (int i = 0; i < contours.size(); i++) {
+			Rect boundingRect = Imgproc.boundingRect(contours.get(i));
+			double blobArea = Imgproc.contourArea(contours.get(i));
+			if (1.0 * blobArea / boundingRect.area() < MIN_FILL_PROPORTION){
+				continue;
+			}
+			// Is the rectangle large enough?
+			if (blobArea < MIN_STRIPE_AREA) {
+				continue;
+			}
+			// Calculate angle and distance.
+			double angularPos = angularPosition(boundingRect.x+boundingRect.width/2, hsvImage.width());
+			// OK, this is really hacky, but it should work.
+			double shortHeight = boundingRect.height * blobArea / boundingRect.area();
+			double midHeight = (boundingRect.height + shortHeight) / 2;
+			double distance = distanceConvert(midHeight, COLORED_STRIPE_HEIGHT, angularPos);
+			Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);
+			stripes.add(polarLoc);
+			Core.rectangle(processedImage, boundingRect.tl(), boundingRect.br(), GREEN);
+		}
+
+		data.landmarks.set(landmarkIndex, stripes);
+		return processedImage;
+
 	}
 	
     //Linear regression
@@ -210,7 +253,7 @@ public class ImageProcessor {
     	
     }
     
-	static Mat findWallsPoly(Mat hsvImage, int lowerHue, int upperHue, cvData data, int value){
+	static Mat findWallsPoly(Mat hsvImage, cvData data, int value){
 		/*
 		 * Locates all the walls the camera can see.
 		 * Dumps to data.angles a hashmap of angle -> distance to wall at that angle.
@@ -382,6 +425,21 @@ public class ImageProcessor {
 			br = converter.cvt(x + grid.gridSize, y + grid.gridSize);
 			Core.rectangle(processedImage, tl, br, RED);
 		}
+		// Draw landmarks
+		for (List<Entry<Double, Double>> landmarkType : data.landmarks) {
+			if (landmarkType == null) {
+				continue;
+			}
+			for (Entry<Double, Double> landmark : landmarkType) {
+				angle = landmark.getValue();
+				distance = landmark.getKey();
+				double x = cameraX + distance * (Math.cos(grid.robotTheta + angle - Math.PI/2));
+				double y = cameraY + distance * (Math.sin(grid.robotTheta + angle - Math.PI/2));
+				tl = converter.cvt(x, y);
+				br = converter.cvt(x + grid.gridSize, y + grid.gridSize);
+				Core.rectangle(processedImage, tl, br, GREEN);
+			}
+		}
 		// Draw the robot's camera stuff.
         HashMap<Double, Double> angles = data.angles;
         for (Entry<Double, Double> obs : angles.entrySet()) {
@@ -392,8 +450,8 @@ public class ImageProcessor {
         	tl = converter.cvt(wallX, wallY);
         	br = converter.cvt(wallX + grid.gridSize, wallY + grid.gridSize);
         	Core.rectangle(processedImage, tl, br, YELLOW);
-        	
         }
+        
 
         double gs = grid.gridSize;
         // And finally, draw the robot.
@@ -402,12 +460,6 @@ public class ImageProcessor {
         Point robotVector = converter.cvt(grid.robotX + Constants.ROBOT_WIDTH * Math.cos(grid.robotTheta),
         		grid.robotY + Constants.ROBOT_WIDTH * Math.sin(grid.robotTheta));
         Core.line(processedImage, robot, robotVector, YELLOW);
-        
-        // Testing out measurement
-        double meas = grid.trueMeas(-Math.PI/8, grid.robotX, grid.robotY, grid.robotTheta, 48);
-        double theta = -Math.PI/8 + grid.robotTheta;
-        Point nextPt = converter.cvt((grid.robotX + meas*Math.cos(theta)), (grid.robotY + meas*Math.sin(theta)));
-        Core.line(processedImage, robot, nextPt, BLUE);
         
         Mat finalImage = new Mat(new Size(0,processedImage.cols()), processedImage.type()); 
         for(int i =0; i<processedImage.rows(); i++){

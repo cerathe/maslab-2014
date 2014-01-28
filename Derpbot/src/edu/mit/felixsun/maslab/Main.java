@@ -59,7 +59,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = false;
+	public final boolean SHOW_IMAGES = true;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -139,7 +139,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -176,6 +176,7 @@ public class Main {
 		sensors.rollerDirection = new DigitalOutput(36);
 		sensors.spiralPWM = new PWMOutput(14);
 		sensors.spiralDirection = new DigitalOutput(13);
+		// Left dump: PWM 9
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -231,11 +232,11 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			sort.step(3300, 3400);
+//			sort.step(3300, 3400);
 			ball.step(navigation, sensors);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
-			cameraPane.updateWindow(finalMap);
+//			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
 			try {

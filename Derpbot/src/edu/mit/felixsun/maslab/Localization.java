@@ -72,6 +72,7 @@ public class Localization {
 		 * Kind of computationally intensive.
 		 * - Maybe we need to rethink this?
 		 */
+		System.out.println("Reloc");
 		int RELOCALIZE_PARTICLE_COUNT = 5000;
 		ArrayList<Pose> hypotheses = new ArrayList<Pose>();
 		// Make a whole bunch of hypotheses.
@@ -88,6 +89,7 @@ public class Localization {
 		grid.robotX = bestGuess.x;
 		grid.robotY = bestGuess.y;
 		grid.robotTheta = bestGuess.theta;
+		relocalize = false;
 	}
 	
 	public void update(cvData data, Sensors sensors) {
