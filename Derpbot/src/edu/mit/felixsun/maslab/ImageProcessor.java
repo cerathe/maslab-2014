@@ -221,7 +221,7 @@ public class ImageProcessor {
 			// Calculate angle and distance.
 			double angularPos = angularPosition(boundingRect.x+boundingRect.width/2, hsvImage.width());
 			// OK, this is really hacky, but it should work.
-			double shortHeight = boundingRect.height * blobArea / boundingRect.area();
+			double shortHeight = boundingRect.height * (-0.5 + blobArea / boundingRect.area());
 			double midHeight = (boundingRect.height + shortHeight) / 2;
 			double distance = distanceConvert(midHeight, COLORED_STRIPE_HEIGHT, angularPos);
 			Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);

@@ -33,6 +33,8 @@ public class cvData {
 		ballPolarLoc = new SimpleEntry<Double, Double>(-1.0, -1.0);
 		landmarks = new ArrayList<List<Entry<Double, Double>>>();
 		for (int i=0; i<3; i++) {
+			// 0 - reactor (green)
+			// 1 - opponent wall (yellow) - NOT USED?
 			landmarks.add(null);
 		}
 	}

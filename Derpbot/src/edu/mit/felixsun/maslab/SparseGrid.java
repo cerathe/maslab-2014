@@ -81,6 +81,11 @@ public class SparseGrid {
 				Entry<Double, Double> pt = new SimpleEntry<Double, Double> (
 						(startx+endx)/2.0, (starty+endy)/2.0);
 				landmarks.get(0).add(pt);
+			} else if (thisWall.type.ordinal() == 1) {
+				// Opponent wall.
+				Entry<Double, Double> pt = new SimpleEntry<Double, Double> (
+						(startx+endx)/2.0, (starty+endy)/2.0);
+				landmarks.get(1).add(pt);
 			}
 			
 			//Put the wall on the grid

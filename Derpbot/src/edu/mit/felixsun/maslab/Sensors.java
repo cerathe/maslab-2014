@@ -2,8 +2,7 @@ package edu.mit.felixsun.maslab;
 
 import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
-import devices.actuators.Servo;
-import devices.actuators.Servo1800A;
+import devices.actuators.Servo3001HB;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
 import devices.actuators.PWMOutput;
@@ -15,7 +14,9 @@ public class Sensors {
 	public Cytron rightDriveMotor;
 	public DigitalOutput led;
 	public AnalogInput photoresistor;
-	public Servo sorter;
+	public Servo3001HB sorter;
+	public Servo3001HB leftDump;
+	public Servo3001HB rightDump;
 	public PWMOutput spiralPWM;
 	public PWMOutput rollerPWM;
 	public DigitalOutput spiralDirection;
