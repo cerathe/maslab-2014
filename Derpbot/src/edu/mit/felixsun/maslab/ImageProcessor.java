@@ -27,8 +27,8 @@ import org.opencv.imgproc.Imgproc;
 public class ImageProcessor {
 	static int greenLowerH = 40;
 	static int greenUpperH = 80;
-	static int tealLowerH = 90;
-	static int tealUpperH = 110;
+	static int tealLowerH = 80;
+	static int tealUpperH = 100;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
@@ -82,7 +82,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 120), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 100), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -115,7 +115,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
-	    processedImage = findBalls(hsvImage, data, greenLowerH, greenUpperH);
+	    findBalls(hsvImage, data, greenLowerH, greenUpperH);
 	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
@@ -194,7 +194,7 @@ public class ImageProcessor {
 		double MIN_STRIPE_AREA = 100;	// For red and green wall stripes.
 		double COLORED_STRIPE_HEIGHT = 2;
 		int MAX_STRIPE_HEIGHT = 250;
-		double MIN_FILL_PROPORTION = 0.2;
+		double MIN_FILL_PROPORTION = 0.4;
 		
 		List<Entry<Double, Double>> stripes = new ArrayList<Entry<Double, Double>>();
 		Mat colorMask = colorFilter(hsvImage, lowerH, upperH);

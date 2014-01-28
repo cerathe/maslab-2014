@@ -59,7 +59,7 @@ class cvHandle implements Runnable {
 	 * Starts the cv scripts.  Runs in a separate thread.
 	 */
 	public final int CAM_MODE = 0;
-	public final boolean SHOW_IMAGES = true;
+	public final boolean SHOW_IMAGES = false;
 	// 0 = connected to robot
 	// 1 = load image
 	public cvData data = new cvData();
@@ -223,6 +223,7 @@ public class Main {
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
 		while (true) {
+			localization.relocalize = true;
 			comm.updateSensorData();
 			synchronized(handle.data) {
 				if (!SIMULATE) {
@@ -236,7 +237,7 @@ public class Main {
 			ball.step(navigation, sensors);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
-//			cameraPane.updateWindow(finalMap);
+			cameraPane.updateWindow(finalMap);
 			comm.transmit();
 			
 			try {

@@ -38,8 +38,9 @@ public class SparseGrid {
 	double width;
 	int voidWidth; //clearance from the walls in grid spaces
 	int reactorVoidWidth; //clearance from the reactors in grid spaces
-	
+	public List<List<Entry<Double, Double>>> landmarks;
 	static double MEAS_SIGMA = 1; //Estimated st.dev of distance measurement.
+	static double LANDMARK_SIGMA = 0.1;
 	
 	public SparseGrid(double scale, BotClientMap theMap) {
 		gridSize = scale;
@@ -51,6 +52,10 @@ public class SparseGrid {
 		width = Constants.ROBOT_WIDTH;
 		voidWidth = (int) (width / 2 + 1);
 		reactorVoidWidth = voidWidth + 6;
+		landmarks = new ArrayList<List<Entry<Double, Double>>>();
+		for (int i=0; i<3; i++) {
+			landmarks.add(new ArrayList<Entry<Double, Double>>());
+		}
 		this.writeMap();
 		this.preprocessErrorDistances();
 	}
@@ -70,6 +75,14 @@ public class SparseGrid {
 			if(Math.max(startx, endx)>mX){mX = Math.max(startx,endx);}
 			if(Math.max(starty, endy)>mY){mY = Math.max(starty,endy);}
 			double slope = (endy-starty)/((double)(endx - startx));
+			// If this wall is a landmark, mark it.
+			if (thisWall.type.ordinal() == 3) {
+				// Reactor.
+				Entry<Double, Double> pt = new SimpleEntry<Double, Double> (
+						(startx+endx)/2.0, (starty+endy)/2.0);
+				landmarks.get(0).add(pt);
+			}
+			
 			//Put the wall on the grid
 			if(endx==startx){
 				for(int y = 0; Math.abs(y)<Math.abs(endy-starty); y+= endy<starty? -1: 1){
@@ -240,19 +253,51 @@ public class SparseGrid {
 		return Math.log(Math.max(gaussian(diff, MEAS_SIGMA), BASELINE_PROB));
 	}
 	
-	public double stateLogProb(HashMap<Double, Double> measurements, double x, double y, double theta) {
+	public double stateLogProb(cvData data, double x, double y, double theta) {
 		/*
 		 * Returns the log probability of measurements being observed, given robot position (x, y, theta)
 		 * Currently, only accounts for walls.
 		 * TODO:
-		 * - Account for field landmarks.
-		 * - Account for forward-facing ultrasound?
+		 * - Account for field landmarks. - DONE.
+		 * - Account for forward-facing ultrasound? - NOT USING.
 		 */
 		double logProb = 0;
-		for (Map.Entry<Double, Double> entry : measurements.entrySet()) {
+		for (Map.Entry<Double, Double> entry : data.angles.entrySet()) {
 			logProb += noisyMeasurement(entry.getKey(), entry.getValue(), x, y, theta); // / entry.getValue();
 		}
+		// Now, account for landmarks.
+		for (int i=0; i<data.landmarks.size(); i++) {
+			if (data.landmarks.get(i) == null) {
+				continue;
+			}
+			for (Entry<Double, Double> landmark: data.landmarks.get(i)) {
+				// First, convert to field coordinates.
+				double absTheta = landmark.getValue() + theta - Math.PI/2;
+				double targetX = x + width/2 * Math.cos(theta) + landmark.getKey() * Math.cos(absTheta);
+				double targetY = y + width/2 * Math.sin(theta) + landmark.getKey() * Math.sin(absTheta);
+				double closestD = findLandmarkError(targetX, targetY, i);
+//				logProb += Math.log(gaussian(closestD, LANDMARK_SIGMA));
+			}
+		}
 		return logProb;
+	}
+	
+	public double findLandmarkError(double x, double y, int type) {
+		/*
+		 * Finds the distance to the closest landmark of type, from location.
+		 */
+		if (landmarks.get(type) == null || landmarks.get(type).size() == 0) {
+			return 0;
+		}
+		double bestD = 1000000;
+		for (Entry<Double, Double> candidate : landmarks.get(type)) {
+			double thisDist = dist(candidate.getKey(), candidate.getValue(), x, y);
+			if (thisDist < bestD) {
+				bestD = thisDist;
+			}
+		}
+		return bestD;
+		
 	}
 
 	public double measLikelihood(Pose pose, double[] measurements){
