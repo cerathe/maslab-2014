@@ -22,8 +22,8 @@ import edu.mit.felixsun.maslab.cvData;
 public class SimMapleComm implements CommInterface {
 	private List<MapleDevice> deviceList = new ArrayList<MapleDevice>();
 	private List<Entry<Double, Double>> balls = new ArrayList<Entry<Double, Double>>();
-	final double LEFT_MOTOR_BIAS = 1;	// Radians/s / motor unit
-	final double RIGHT_MOTOR_BIAS = 1.2;	// Radians/s / motor unit
+	final double LEFT_MOTOR_BIAS = 5;	// Radians/s / motor unit
+	final double RIGHT_MOTOR_BIAS = 6;	// Radians/s / motor unit
 	final double FRACTION_WHEEL_VARIATION = 0.2;	// Average error of wheel motion.
 	final double TIMESTEP = 0.1;		// seconds
 	final double TURN_DISCOUNT = 0.8;
@@ -57,8 +57,8 @@ public class SimMapleComm implements CommInterface {
 		/*
 		 * We cheat a little by taking in a Sensor object.
 		 */
-		leftEncoder = sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
-		rightEncoder = sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS * TIMESTEP;
+		leftEncoder = -sensors.leftDriveMotor.lastSet * LEFT_MOTOR_BIAS * TIMESTEP;
+		rightEncoder = -sensors.rightDriveMotor.lastSet * RIGHT_MOTOR_BIAS * TIMESTEP;
 		double leftD = -leftEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double rightD = rightEncoder * Constants.WHEEL_RADIUS * (1 + FRACTION_WHEEL_VARIATION * rng.nextGaussian());
 		double deltaForward = (leftD + rightD) / 2;

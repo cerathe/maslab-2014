@@ -138,7 +138,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = false;
+	final static boolean SIMULATE = true;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -227,7 +227,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			ball.step(navigation, sensors);
+			ball.step(navigation, sensors);
 //			sort.step(2400, 2800);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
