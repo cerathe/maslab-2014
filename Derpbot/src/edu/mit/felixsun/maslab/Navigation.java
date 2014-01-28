@@ -55,12 +55,12 @@ public class Navigation {
 		while(!term){
 			x = x+xint;
 			y = y+yint;
+			if((int)x == x2){
+				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
+				term = true;
+			}
 			if(!startInVoid){
-				if((int)x == x2){
-					path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
-					term = true;
-				}
-				else if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
+				if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
 					term=true;
 				}
 				else{
