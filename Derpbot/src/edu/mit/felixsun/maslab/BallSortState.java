@@ -41,6 +41,7 @@ public class BallSortState extends State {
 			//jiggle the ball--this tends to improve reading accuracy.
 			servo.setAngle(midAngle -5);
 			servo.setAngle(maxAngle +5);
+			System.out.println(res.getValue());
 			if(res.getValue()>ballThresh){
 				existsBall = true;
 				if(res.getValue()<greenThresh){
@@ -49,8 +50,7 @@ public class BallSortState extends State {
 				}
 			}
 		}
-		servo.setAngle(midAngle);
-		led.setValue(false);
+//		led.setValue(false);
 		if(!existsBall){
 			System.out.println("No ball :(");
 			return 0;
@@ -61,13 +61,11 @@ public class BallSortState extends State {
 				System.out.println("RED!");
 				//sort to one side
 				servo.setAngle(minAngle);
-				servo.setAngle(midAngle);
 			}
 			else{
 				System.out.println("GREEN!");
 				//sort to other side
 				servo.setAngle(maxAngle);
-				servo.setAngle(midAngle);
 			}
 			return 1;
 		}

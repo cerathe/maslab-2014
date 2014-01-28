@@ -21,6 +21,7 @@ import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
 import devices.actuators.PWMOutput;
 import devices.actuators.Servo1800A;
+import devices.actuators.Servo3001HB;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
 import devices.sensors.Photoresistor;
@@ -167,10 +168,10 @@ public class Main {
 		DigitalOutput ground3 = new DigitalOutput(19);
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
-		sensors.photoresistor = new AnalogInput(12);
-		sensors.led = new DigitalOutput(9);
+		sensors.photoresistor = new AnalogInput(17);
+		sensors.led = new DigitalOutput(18);
 		//TODO: Connect sorting servo actually and fix Servo type and pin.
-		sensors.sorter = new Servo1800A(8);
+		sensors.sorter = new Servo3001HB(8);
 		sensors.rollerPWM = new PWMOutput(11);
 		sensors.rollerDirection = new DigitalOutput(36);
 		sensors.spiralPWM = new PWMOutput(14);
@@ -197,6 +198,8 @@ public class Main {
 		
 		comm.registerDevice(sensors.photoresistor);
 		comm.registerDevice(sensors.led);
+//		comm.registerDevice(sensors.sorter);
+		System.out.println("Servo registered");
 		comm.registerDevice(sensors.rollerDirection);
 		comm.registerDevice(sensors.rollerPWM);
 		comm.registerDevice(sensors.spiralDirection);
@@ -212,9 +215,10 @@ public class Main {
 		sensors.rollerPWM.setValue(1);
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
+
 		comm.transmit();
-		BallCollectState ball = new BallCollectState(navigation);
-//		BallSortState sort = new BallSortState(sensors);
+//		BallCollectState ball = new BallCollectState(navigation);
+		BallSortState sort = new BallSortState(sensors);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
 		while (true) {
@@ -228,7 +232,7 @@ public class Main {
 				localization.update(data, sensors);
 			}
 //			ball.step(navigation, sensors);
-//			sort.step(2400, 2800);
+			sort.step(3300, 3400);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
