@@ -46,8 +46,8 @@ public class Localization {
 		}
 	}
 	
-	public Localization(cvData data) {
-		map = BotClientMap.getDefaultMap();
+	public Localization(cvData data, BotClientMap map) {
+		this.map = map;
 		grid = new SparseGrid(data.gridSize, map);
 		forwardSpeed = 0;
 		turnSpeed = 0;

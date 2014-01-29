@@ -44,6 +44,7 @@ import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
+import BotClient.BotClient;
 import comm.BotClientMap;
 import comm.BotClientMap.Point;
 import comm.BotClientMap.Pose;
@@ -153,9 +154,7 @@ public class Main {
 		} else {
 			data = new cvData();
 		}
-		Localization localization = new Localization(data);
-		Navigation navigation = new Navigation(localization);
-		
+
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
 		Sensors sensors = new Sensors();
@@ -210,6 +209,22 @@ public class Main {
 		sensors.led.setValue(true);
 
 		comm.transmit();
+		
+		BotClientMap map;
+		if (SIMULATE) {
+			map = BotClientMap.getDefaultMap();
+		} else {
+			BotClient botClient = new BotClient("18.150.7.174:6667", "i5d76YlHmB", false);
+			while (!botClient.gameStarted()) {
+				System.out.println("Waiting...");
+			}
+			String mapString = botClient.getMap();
+			map = new BotClientMap();
+			map.load(mapString);
+		}
+		Localization localization = new Localization(data, map);
+		Navigation navigation = new Navigation(localization);
+		
 		System.out.println(localization.grid.places);
 		PointOfInterest reactor = localization.grid.places.get(1);
 		System.out.println(reactor.normPt1);
@@ -218,12 +233,11 @@ public class Main {
 		LinkedList<SimpleEntry<Integer, Integer>> path = navigation.naiveWallFollow(22, 22,14,34);
 		path = navigation.cleanUpNaive(path);
 		System.out.println("Pah: "+path);
-		PathFollowState pfs = new PathFollowState(Constants.SPEED, path);
-		PointTrackState pts = new PointTrackState(Constants.SPEED);
 		BallCollectState ball = new BallCollectState(navigation);
 		BallSortState sort = new BallSortState(sensors);
 		DriveStraightState straight = new DriveStraightState();
 		TurnState turn = new TurnState();
+		
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -237,8 +251,6 @@ public class Main {
 			//goal.step(sensors);
 			ball.step(navigation, sensors);
 			sort.step(60,70);
-//			pfs.step(navigation,sensors);
-//			pts.step(navigation, sensors, new SimpleEntry<Integer,Integer>(19,34));
 			
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
