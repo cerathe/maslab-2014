@@ -140,7 +140,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	
 	public static void main(String[] args) {
 		cvData data;
@@ -172,7 +172,7 @@ public class Main {
 		sensors.photoresistor = new AnalogInput(17);
 		sensors.led = new DigitalOutput(18);
 		//TODO: Connect sorting servo actually and fix Servo type and pin.
-		sensors.sorter = new Servo3001HB(9);
+		sensors.sorter = new Servo3001HB(12);
 		sensors.rollerPWM = new PWMOutput(11);
 		sensors.rollerDirection = new DigitalOutput(10);
 		sensors.spiralPWM = new PWMOutput(14);
@@ -208,22 +208,23 @@ public class Main {
 		ground2.setValue(false);
 		ground3.setValue(false);
 		ground4.setValue(false);
+		sensors.led.setValue(true);
 		sensors.rollerDirection.setValue(false);
 		sensors.rollerPWM.setValue(1);
-		sensors.spiralPWM.setValue(0.6);
+		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
 		sensors.sorter.setAngle(sensors.sorter.getMinAngle());
 
 		comm.transmit();
-		
+		sensors.led.setValue(true);
 		System.out.println(localization.grid.places);
 		PointOfInterest reactor = localization.grid.places.get(0);
-		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
-		goal.setGoal(reactor);
-		System.out.println(goal.path);
+//		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
+//		goal.setGoal(reactor);
+//		System.out.println(goal.path);
 		
 //		BallCollectState ball = new BallCollectState(navigation);
-//		BallSortState sort = new BallSortState(sensors);
+		BallSortState sort = new BallSortState(sensors);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
 		while (true) {
@@ -236,9 +237,10 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			goal.step(sensors);
+//			goal.step(sensors);
 //			ball.step(navigation, sensors);
-//			sort.step(3300, 3400);
+			sort.step(60,70);
+//			sensors.sorter.setAngle(100);
 
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
