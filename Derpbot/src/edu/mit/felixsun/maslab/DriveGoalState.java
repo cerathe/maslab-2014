@@ -1,6 +1,7 @@
 package edu.mit.felixsun.maslab;
 
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Map.Entry;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -55,6 +56,12 @@ public class DriveGoalState extends State{
 	}
 	
 	public int step(Sensors s){
+		/*
+		 * Return codes:
+		 * 0 - No path to goal
+		 * 1 - Nav-ing
+		 * 2 - Done
+		 */
 		if(path==null){
 			return 0;
 		}
@@ -65,7 +72,12 @@ public class DriveGoalState extends State{
 		}
 		else{
 			//If you've reached the point, turn to face it.
-			if(nav.loc.grid.getNeighbors(path.getLast()).contains(new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY))){
+//			if(nav.loc.grid.getNeighbors(path.getLast()).contains()){
+			SimpleEntry<Integer, Integer> robotLoc = 
+					new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
+			if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 3){
+				s.leftDriveMotor.setSpeed(0);
+				s.rightDriveMotor.setSpeed(0);
 				return 1;
 			}
 			else{
