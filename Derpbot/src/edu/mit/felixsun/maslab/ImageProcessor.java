@@ -373,8 +373,8 @@ public class ImageProcessor {
 		 * This will probably be moved to another class soon.
 		 */
 		double scale = 3;
-		double offsetX = 10;
-		double offsetY = 10;
+		double offsetX = 0;
+		double offsetY = -100;
 		Point tl, br;
 		class coordsToImgPoint {
 			/*

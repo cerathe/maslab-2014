@@ -13,6 +13,8 @@ public class BallSortState extends State {
 	public Servo servo;
 	public boolean sorted = false;
 	public int countdown;
+	int countdown2;
+	int foundBall;
 	double midAngle;
 	double maxAngle;
 	double minAngle;
@@ -23,7 +25,9 @@ public class BallSortState extends State {
 		led = sensors.led;
 		servo = sensors.sorter;
 		countdown = 0;
-		BallDetectState detect = new BallDetectState(sensors); 
+		countdown2 = 0;
+		foundBall = 0;
+		detect = new BallDetectState(sensors); 
 		midAngle = (servo.getMaxAngle() + servo.getMinAngle())/2;
 		maxAngle = servo.getMaxAngle()-5;
 		minAngle = servo.getMinAngle()+5;
@@ -36,6 +40,11 @@ public class BallSortState extends State {
 		 */ 
 		
 		if(countdown==0){
+			if(countdown2>0){
+				servo.setAngle(midAngle);
+				countdown2--;
+				return 1;
+			}
 			//If we aren't sorting, check if we need to.
 			if(!toSort){
 				System.out.println("No ball :(");
@@ -43,6 +52,19 @@ public class BallSortState extends State {
 				int toGo = detect.step(ballThresh);
 				if(toGo==1){
 					toSort = true;
+					led.setValue(true);
+					foundBall = 20;
+				}
+				return 0;
+			}
+			if(foundBall>0){
+				servo.setAngle(midAngle);
+				if(res.getValue()<ballThresh){					
+					foundBall--;
+				}
+				else{
+					foundBall=0;
+					toSort = false;
 				}
 				return 0;
 			}
@@ -51,13 +73,14 @@ public class BallSortState extends State {
 			//If we are sorting, sort.
 			boolean isRed = false;
 			System.out.println(res.getValue());
-			if(res.getValue()<greenThresh){
+			if(res.getValue()>greenThresh){
 				//empirical observation that green does not return false reds.
 				isRed = true;
 			}
 			System.out.println(isRed);
 			//TODO: Move the servos
 			countdown = 20;
+			countdown2 = 20;
 			if(isRed){
 				System.out.println("RED!");
 				//sort to one side

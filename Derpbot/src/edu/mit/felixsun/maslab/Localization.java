@@ -125,7 +125,7 @@ public class Localization {
 		} else {
 			stuckCount = 0;
 		}
-		if (stuckCount > 40) {
+		if (stuckCount > 30) {
 			stuck = true;
 			System.out.println("Oh fuck, we're stuck.");
 		} else {

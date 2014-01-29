@@ -43,6 +43,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
+import org.opencv.imgproc.Imgproc;
 
 import BotClient.BotClient;
 import comm.BotClientMap;
@@ -142,7 +143,7 @@ class cvHandle implements Runnable {
 
 public class Main {
 	final static boolean SIMULATE = false;
-	
+	final static boolean PRACTICE = false;
 	public static void main(String[] args) {
 		cvData data;
 		// Just a testing framework for the computer vision stuff.
@@ -211,10 +212,11 @@ public class Main {
 		comm.transmit();
 		
 		BotClientMap map;
-		if (SIMULATE) {
+		BotClient botClient;
+		if (SIMULATE || PRACTICE) {
 			map = BotClientMap.getDefaultMap();
 		} else {
-			BotClient botClient = new BotClient("18.150.7.174:6667", "i5d76YlHmB", false);
+			botClient = new BotClient("18.150.7.174:6667", "i5d76YlHmB", false);
 			while (!botClient.gameStarted()) {
 				System.out.println("Waiting...");
 			}
@@ -250,13 +252,19 @@ public class Main {
 			}
 			//goal.step(sensors);
 			ball.step(navigation, sensors);
-			sort.step(60,70);
+			sort.step(200,110);
 			
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
-			cameraPane.updateWindow(finalMap);
 			comm.transmit();
-			
+			cameraPane.updateWindow(finalMap);
+			if (SIMULATE) {
+			} else {
+//				Mat smallMap = new Mat();
+//				Imgproc.resize(finalMap, smallMap, new Size(320, 240));
+//				BufferedImage out = Mat2Image.getImage(smallMap);
+//				botClient.sendImage(out);
+			}
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
