@@ -1,5 +1,11 @@
 package edu.mit.felixsun.maslab;
 
+
+
+import com.sun.org.apache.bcel.internal.generic.CompoundInstruction;
+
+import comm.CommInterface;
+import comm.MapleComm;
 import devices.actuators.DigitalOutput;
 import devices.actuators.Servo;
 import devices.sensors.AnalogInput;
@@ -9,11 +15,14 @@ public class BallSortState extends State {
 	public AnalogInput res;
 	public DigitalOutput led;
 	public Servo servo;
+	public boolean sorted = false;
+	public int countdown;
 	
 	public BallSortState(Sensors sensors){
 		res = sensors.photoresistor;
 		led = sensors.led;
 		servo = sensors.sorter;
+		countdown = 0;
 	}
 	
 	public int step(double ballThresh, double greenThresh){
@@ -29,12 +38,6 @@ public class BallSortState extends State {
 		
 		boolean existsBall = false;
 		boolean isRed = false;
-		for(int i=0; i<5; i++){
-		//measure 5 times. Green returns green all 5 times, red has some error.
-		//but should return at least once.
-			//jiggle the ball--this tends to improve reading accuracy.
-			servo.setAngle(midAngle -5);
-			servo.setAngle(maxAngle +5);
 			System.out.println(res.getValue());
 			if(res.getValue()>ballThresh){
 				existsBall = true;
@@ -43,26 +46,33 @@ public class BallSortState extends State {
 					isRed = true;
 				}
 			}
-		}
+		System.out.println(existsBall + " " + isRed);
 //		led.setValue(false);
 		if(!existsBall){
 			System.out.println("No ball :(");
+			servo.setAngle(midAngle);
 			return 0;
 		}
-		else{
+		else if(countdown==0){
 			//TODO: Move the servos
+			countdown = 20;
 			if(isRed){
 				System.out.println("RED!");
 				//sort to one side
 				servo.setAngle(minAngle);
+				sorted = true;
 			}
 			else{
 				System.out.println("GREEN!");
 				//sort to other side
 				servo.setAngle(maxAngle);
+				sorted = true;
 			}
-			return 1;
 		}
-		
+		else{
+			countdown--;
+//			System.out.println(countdown);
+		}
+		return 1;
 	}
 }
