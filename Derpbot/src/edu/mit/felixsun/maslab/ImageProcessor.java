@@ -82,7 +82,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 100), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -115,21 +115,23 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
-	    findBalls(hsvImage, data, redLowerH, redUpperH);
-	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
+	    findBalls(hsvImage, data);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
 	}
 
 	
-	static Mat findBalls(Mat hsvImage, cvData data, int lowerH, int upperH) {
+	static Mat findBalls(Mat hsvImage, cvData data) {
 		int MIN_BALL_HEIGHT = 250;
 		double BALL_RATIO = 2;
 		double MIN_FILL_PROPORTION = 0.2;
 		double MIN_BALL_AREA = 20;
-		// Find balls
-		Mat colorMask = colorFilter(hsvImage, lowerH, upperH);
+	    // Find balls - both red and green in one shot.
+	    Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
+	    Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
+	    Mat colorMask = new Mat();
+	    Core.add(redMask, greenMask, colorMask);
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		// Also show the masked input.
