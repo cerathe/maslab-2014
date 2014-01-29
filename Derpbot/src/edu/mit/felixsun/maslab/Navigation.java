@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 
 public class Navigation {
 	public Localization loc;
-	public final int MAX_TRIES = 1000;
+	public final int MAX_TRIES = 10000;
 	public Navigation(Localization loca){
 		loc = loca;
 	}
@@ -94,10 +94,10 @@ public class Navigation {
 		SimpleEntry<Integer,Integer> p2 = new SimpleEntry<Integer, Integer>(x2,y2);
 		//first Try
 		path.add(p1);
-		path.add(straightLine(p1,p2).getLast());
+		path.add(straightLine(p1,p2).peekLast());
 		HashSet<SimpleEntry<Integer,Integer>> traversedClosePts = new HashSet<SimpleEntry<Integer,Integer>>(); //points touching the void that have been checked.
 		LinkedList<SimpleEntry<Integer,Integer>> nextPts = new LinkedList<SimpleEntry<Integer,Integer>>(); //points to check
-		nextPts.addAll(loc.grid.getNeighbors(path.getLast()));
+		nextPts.addAll(loc.grid.getNeighbors(path.peekLast()));
 		
 		//traverse the wall until you hit a corner.
 		
@@ -122,7 +122,7 @@ public class Navigation {
 			//Try to draw a straight line to the target.
 			LinkedList<SimpleEntry<Integer, Integer>> bestGuess = straightLine(thisPt, p2);
 			//how far you got before hitting something.
-			SimpleEntry<Integer, Integer> attempt = bestGuess.getLast();
+			SimpleEntry<Integer, Integer> attempt = bestGuess.peekLast();
 			//if you hit the target, stop.
 			if(finalSpots.contains(attempt)){
 				path.add(thisPt);
@@ -140,8 +140,9 @@ public class Navigation {
 				}
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
+			System.out.println(path);
 		}
-		if (tries >= MAX_TRIES || (! finalSpots.contains(path.getLast()))) {
+		if (tries >= MAX_TRIES || (! finalSpots.contains(path.peekLast()))) {
 			// Turns out, we didn't actually find a path...
 			return new LinkedList<SimpleEntry<Integer,Integer>>();
 		}
@@ -168,7 +169,7 @@ public class Navigation {
 		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
 		
 		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
-		finalPath.add(naive.getFirst());
+		finalPath.add(naive.peekFirst());
 		
 		SimpleEntry<Integer,Integer> next;
 		SimpleEntry<Integer,Integer> secondNext;
@@ -176,13 +177,13 @@ public class Navigation {
 		while(it.hasNext()){
 			Iterator<SimpleEntry<Integer, Integer>> it2 = naive.descendingIterator();
 			secondNext = it2.next();
-			SimpleEntry<Integer, Integer> triedLine = straightLine(next,secondNext).getLast();
+			SimpleEntry<Integer, Integer> triedLine = straightLine(next,secondNext).peekLast();
 			while(!secondNext.equals(next)){
 				if(triedLine.equals(secondNext)){
 					break;
 				}
 				secondNext = it2.next();
-				triedLine = straightLine(next,secondNext).getLast();
+				triedLine = straightLine(next,secondNext).peekLast();
 			}
 			finalPath.add(secondNext);
 			if(!secondNext.equals(next)){
@@ -194,6 +195,7 @@ public class Navigation {
 				next = it.next();
 			}
 		}
+		finalPath.add(naive.peekLast());
 		return finalPath;
 	}
 

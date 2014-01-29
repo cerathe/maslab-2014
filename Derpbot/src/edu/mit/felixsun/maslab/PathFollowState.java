@@ -12,6 +12,7 @@ public class PathFollowState {
 	SimpleEntry<Integer,Integer> thisPt;
 	PointTrackState pointTrack;
 	LinkedList<SimpleEntry<Integer,Integer>> path;
+	
 	public PathFollowState(double speed, LinkedList<SimpleEntry<Integer,Integer>> path){
 		driveSpeed = speed;
 		iterator = path.iterator();

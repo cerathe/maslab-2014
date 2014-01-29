@@ -38,6 +38,32 @@ public class SparseGrid {
 	double width;
 	int voidWidth; //clearance from the walls in grid spaces
 	int reactorVoidWidth; //clearance from the reactors in grid spaces
+	List<PointOfInterest> places= new LinkedList<PointOfInterest>(); 
+	
+	public class PointOfInterest{
+		public boolean visited = false;
+		public int ballsIn = 0;
+		public SimpleEntry<Integer,Integer> actualMidpoint;
+		public SimpleEntry<Integer,Integer> normPt1;
+		public SimpleEntry<Integer,Integer> normPt2;
+		public int type;
+		
+		public PointOfInterest(int typ, SimpleEntry<Integer,Integer> midpt, SimpleEntry<Integer,Integer> n1, SimpleEntry<Integer,Integer> n2){
+			actualMidpoint = midpt;
+			normPt1 = n1;
+			normPt2 = n2;
+			type = typ;
+		}
+		
+		public void score(){
+			ballsIn++;
+		}
+		
+		public void visit(){
+			visited = true;
+		}
+		
+	}
 	
 	static double MEAS_SIGMA = 1; //Estimated st.dev of distance measurement.
 	
@@ -79,6 +105,33 @@ public class SparseGrid {
 			for(int x = 0; Math.abs(x)<Math.abs(endx-startx); x+= endx<startx? -1: 1){
 				set(startx + x,(int)(starty + slope*x), thisWall.type.ordinal());
 			}
+			
+			//Process the points of interest
+			if(thisWall.type.ordinal()>0){
+				double midx = (startx+endx)/2;
+				double midy = (starty+endy)/2;
+				SimpleEntry<Integer,Integer> midPt = new SimpleEntry<Integer,Integer>((int) midx, (int)midy);
+				SimpleEntry<Integer,Integer> normPt1;
+				SimpleEntry<Integer,Integer> normPt2;
+				if(endx == startx){
+					normPt1 = new SimpleEntry<Integer,Integer>((int)(startx + reactorVoidWidth+1), (int) midy);
+					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx - reactorVoidWidth-1), (int) midy);
+				}
+				else if(endy == starty){
+					normPt1 = new SimpleEntry<Integer,Integer>((int)(startx), (int) midy + reactorVoidWidth+1);
+					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx), (int) midy - reactorVoidWidth-1);
+				}
+				else{
+					double normSlp = -1/slope;
+					normPt1 = new SimpleEntry<Integer,Integer>((int)(startx + reactorVoidWidth), (int)(midy + normSlp*reactorVoidWidth));
+					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx - reactorVoidWidth), (int)(midy - normSlp*reactorVoidWidth));
+				}
+				
+				
+				PointOfInterest aNewPlace = new PointOfInterest(thisWall.type.ordinal(), midPt, normPt1, normPt2);
+				places.add(aNewPlace);
+			}
+			
 		}
 		this.maxX = mX;
 		this.maxY = mY;

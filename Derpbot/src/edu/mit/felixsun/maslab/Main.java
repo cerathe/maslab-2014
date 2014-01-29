@@ -27,6 +27,7 @@ import devices.sensors.Photoresistor;
 import devices.sensors.Ultrasonic;
 import edu.mit.felixsun.maslab.ImageProcessor;
 import edu.mit.felixsun.maslab.Mat2Image;
+import edu.mit.felixsun.maslab.SparseGrid.PointOfInterest;
 import edu.mit.felixsun.maslab.WallFollowState;
 import edu.mit.felixsun.maslab.SonarReadState;
 import edu.mit.felixsun.maslab.DisplayWindow;
@@ -213,7 +214,14 @@ public class Main {
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
 		comm.transmit();
-		BallCollectState ball = new BallCollectState(navigation);
+		
+		System.out.println(localization.grid.places);
+		PointOfInterest reactor = localization.grid.places.get(0);
+		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
+		goal.setGoal(reactor);
+		System.out.println(goal.path);
+		
+//		BallCollectState ball = new BallCollectState(navigation);
 //		BallSortState sort = new BallSortState(sensors);
 //		DriveStraightState straight = new DriveStraightState();
 //		TurnState turn = new TurnState();
@@ -227,7 +235,8 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			ball.step(navigation, sensors);
+			goal.step(sensors);
+//			ball.step(navigation, sensors);
 //			sort.step(2400, 2800);
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);

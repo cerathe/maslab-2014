@@ -27,12 +27,6 @@ public class BallSortState extends State {
 		double maxAngle = servo.getMaxAngle()-5;
 		double minAngle = servo.getMinAngle()+5;
 		
-		//wait 1 sec  to let the photoresistor come to equilibrium.
-		try {
-		    Thread.sleep(1000);
-		} catch(InterruptedException ex) {
-		    Thread.currentThread().interrupt();
-		}
 		boolean existsBall = false;
 		boolean isRed = false;
 		for(int i=0; i<5; i++){
