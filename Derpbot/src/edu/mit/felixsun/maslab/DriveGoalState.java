@@ -8,12 +8,18 @@ import java.util.LinkedList;
 import edu.mit.felixsun.maslab.SparseGrid.PointOfInterest;
 
 public class DriveGoalState extends State{
-	public PathFollowState pfs;
-	public TurnState ts = new TurnState();
+	PathFollowState pfs;
+	TurnState ts = new TurnState();
+	DriveStraightState deadReckon = new DriveStraightState();
+	int substate = 0;
+	int deadReckonCount = 0;
+	int dumpCount = 0;
+	int backCount = 0;
 	public Navigation nav;
 	public double finalAngle;
 	public double speed;
 	public LinkedList<SimpleEntry<Integer,Integer>> path;
+	PointOfInterest goal;
 	
 	public DriveGoalState(double spd, Navigation n ){
 		speed = spd;
@@ -22,6 +28,7 @@ public class DriveGoalState extends State{
 	
 	public void setGoal(PointOfInterest pt){
 		//Check which of the two potential normal pts is reachable.
+		goal = pt;
 		SimpleEntry<Integer,Integer> curr ;
 		try{
 			curr = new SimpleEntry<Integer,Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
@@ -62,28 +69,89 @@ public class DriveGoalState extends State{
 		 * 1 - Nav-ing
 		 * 2 - Done
 		 */
-		if(path==null){
-			return 0;
-		}
-		else if(pfs==null){
-			pfs = new PathFollowState(speed/2, path);
-			pfs.step(nav, s);
-			return 1;
-		}
-		else{
-			//If you've reached the point, turn to face it.
-//			if(nav.loc.grid.getNeighbors(path.getLast()).contains()){
-			SimpleEntry<Integer, Integer> robotLoc = 
-					new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
-			if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 3){
-				s.leftDriveMotor.setSpeed(0);
-				s.rightDriveMotor.setSpeed(0);
+		double ANGLE_TOLERANCE = 0.1;
+		if (substate == 0) {
+			// Drive towards waypoint
+			if(path==null){
+				return 0;
+			}
+			else if(pfs==null){
+				pfs = new PathFollowState(speed/2, path);
+				pfs.step(nav, s);
 				return 1;
 			}
 			else{
-				pfs.step(nav,s);
+				//If you've reached the point, turn to face it.
+				SimpleEntry<Integer, Integer> robotLoc = 
+						new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
+				if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 3){
+					s.leftDriveMotor.setSpeed(0);
+					s.rightDriveMotor.setSpeed(0);
+					substate = 1;
+					return 1;
+				}
+				else{
+					pfs.step(nav,s);
+					return 1;
+				}
+			}
+		} else if (substate == 1) {
+			// Turn towards goal
+			double xDiff = goal.actualMidpoint.getKey() - nav.loc.grid.robotX;
+			double yDiff = goal.actualMidpoint.getValue() - nav.loc.grid.robotY;
+			double pathAngle = Math.atan2(yDiff, xDiff);
+			double angleDiff = pathAngle - nav.loc.grid.robotTheta;
+			angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+			if (angleDiff < -ANGLE_TOLERANCE){
+//				System.out.println("Turn A");
+				ts.step(nav.loc, s, -1.3);
+				return 1;
+			} else if (angleDiff > ANGLE_TOLERANCE) {
+//				System.out.println("Turn B");
+				ts.step(nav.loc, s, 1.3);
+				return 1;
+			} else {
+				substate = 2;
+				s.leftDriveMotor.setSpeed(0);
+				s.rightDriveMotor.setSpeed(0);
+				deadReckonCount = 100;
 				return 1;
 			}
+		} else if (substate == 2) {
+			// Dead-reckon into goal.
+			if (deadReckonCount > 0 && !nav.loc.stuck) {
+				deadReckon.step(nav.loc, s, 10);
+				deadReckonCount--;
+				return 1;
+			} else {
+				substate = 3;
+				s.leftDriveMotor.setSpeed(0);
+				s.rightDriveMotor.setSpeed(0);
+				dumpCount = 10;
+				return 1;
+			}
+		} else if (substate == 3) {
+			// Dump balls.  TODO: fill this in.
+			if (dumpCount > 0) {
+				dumpCount--;
+			} else {
+				backCount = 100;
+				substate = 4;
+			}
+			return 1;
+		} else if (substate == 4) {
+			// Back out.
+			if (backCount > 0) {
+				deadReckon.step(nav.loc, s, -10);
+				backCount--;
+			} else {
+				substate = 5;
+				s.leftDriveMotor.setSpeed(0);
+				s.rightDriveMotor.setSpeed(0);
+				nav.loc.relocalize = true;
+				return 1;				
+			}
 		}
+		return 2;
 	}
 }
