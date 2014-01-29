@@ -164,8 +164,6 @@ public class Main {
 		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
 		sensors.leftEncoder = new Encoder(29, 30);
 		sensors.rightEncoder = new Encoder(31, 32);
-		DigitalOutput ground1 = new DigitalOutput(0);
-		DigitalOutput ground2 = new DigitalOutput(5);
 		DigitalOutput ground3 = new DigitalOutput(19);
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
@@ -189,8 +187,6 @@ public class Main {
 		comm.registerDevice(sensors.rightDriveMotor);
 		comm.registerDevice(sensors.leftEncoder);
 		comm.registerDevice(sensors.rightEncoder);
-		comm.registerDevice(ground1);
-		comm.registerDevice(ground2);
 		comm.registerDevice(ground3);
 		comm.registerDevice(ground4);
 		
@@ -203,9 +199,6 @@ public class Main {
 		comm.registerDevice(sensors.spiralPWM);
 		comm.initialize();
 		
-		
-		ground1.setValue(false);
-		ground2.setValue(false);
 		ground3.setValue(false);
 		ground4.setValue(false);
 		sensors.led.setValue(true);
@@ -214,19 +207,23 @@ public class Main {
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
 		sensors.sorter.setAngle(sensors.sorter.getMinAngle());
+		sensors.led.setValue(true);
 
 		comm.transmit();
-		sensors.led.setValue(true);
 		System.out.println(localization.grid.places);
-		PointOfInterest reactor = localization.grid.places.get(0);
-//		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
-//		goal.setGoal(reactor);
-//		System.out.println(goal.path);
-		
-//		BallCollectState ball = new BallCollectState(navigation);
+		PointOfInterest reactor = localization.grid.places.get(1);
+		System.out.println(reactor.normPt1);
+		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
+		goal.setGoal(reactor);
+		LinkedList<SimpleEntry<Integer, Integer>> path = navigation.naiveWallFollow(22, 22,14,34);
+		path = navigation.cleanUpNaive(path);
+		System.out.println("Pah: "+path);
+		PathFollowState pfs = new PathFollowState(Constants.SPEED, path);
+		PointTrackState pts = new PointTrackState(Constants.SPEED);
+		BallCollectState ball = new BallCollectState(navigation);
 		BallSortState sort = new BallSortState(sensors);
-//		DriveStraightState straight = new DriveStraightState();
-//		TurnState turn = new TurnState();
+		DriveStraightState straight = new DriveStraightState();
+		TurnState turn = new TurnState();
 		while (true) {
 			comm.updateSensorData();
 			synchronized(handle.data) {
@@ -237,11 +234,12 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			goal.step(sensors);
-//			ball.step(navigation, sensors);
+			//goal.step(sensors);
+			ball.step(navigation, sensors);
 			sort.step(60,70);
-//			sensors.sorter.setAngle(100);
-
+//			pfs.step(navigation,sensors);
+//			pts.step(navigation, sensors, new SimpleEntry<Integer,Integer>(19,34));
+			
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);

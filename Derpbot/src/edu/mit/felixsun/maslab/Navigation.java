@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 public class Navigation {
+	double TOLERANCE = 2;
 	public Localization loc;
 	public final int MAX_TRIES = 10000;
 	public Navigation(Localization loca){
@@ -37,12 +38,12 @@ public class Navigation {
 		else{
 			double slope = Math.abs((double)(y2-y1))/((double)(x2-x1));
 			if(slope<1){
-				xint = x2>x1? 1: -1;
-				yint = y2>y1? slope:-slope;
+				xint = x2>x1? 0.5: -0.5;
+				yint = y2>y1? slope/2:-slope/2;
 			}
 			else{
-				xint = x2>x1? 1/slope: -1/slope;
-				yint = y2>y1? 1:-1;
+				xint = x2>x1? 1/slope/2: -1/slope/2;
+				yint = y2>y1? 0.5:-0.5;
 			}
 		}
 		
@@ -103,6 +104,7 @@ public class Navigation {
 		
 		//Places that count as hitting the target.
 		List<SimpleEntry<Integer, Integer>> finalSpots = loc.grid.getNeighbors(p2);
+		finalSpots.add(p2);
 		int tries = 0;
 		
 		//Assumes a path exists. which is fair.
@@ -124,7 +126,7 @@ public class Navigation {
 			//how far you got before hitting something.
 			SimpleEntry<Integer, Integer> attempt = bestGuess.peekLast();
 			//if you hit the target, stop.
-			if(finalSpots.contains(attempt)){
+			if(loc.grid.dist(attempt, p2)<TOLERANCE){
 				path.add(thisPt);
 				path.add(attempt);
 				break;
@@ -136,16 +138,13 @@ public class Navigation {
 					path.add(thisPt);
 					//refresh the list of new points to try, .
 					nextPts.clear();
-					nextPts.addAll(neighbors);
 				}
+			nextPts.addAll(neighbors);
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
-			System.out.println(path);
 		}
-		if (tries >= MAX_TRIES || (! finalSpots.contains(path.peekLast()))) {
-			// Turns out, we didn't actually find a path...
-			return new LinkedList<SimpleEntry<Integer,Integer>>();
-		}
+		System.out.println("B: "+path);
+		path.add(p2);
 		return path;
 		/*
 		 * I think this is faster than A* because the search

@@ -13,6 +13,7 @@ public class BallCollectState extends State {
 	TurnState turnState;
 	int lastReturn = 0;
 	int stuckCount = 0;
+	int ramCount = 0;
 	
 	public BallCollectState(Navigation nav) {
 		newGoal(nav);
@@ -65,11 +66,17 @@ public class BallCollectState extends State {
 			return 0;
 		}
 		
+		if (ramCount > 0) {
+			backState.step(nav.loc, sensors, 18);
+			ramCount--;
+		}
+		
 		// 1 - If we see a ball, go for it.
 		int result = myBall.step(nav.loc, sensors);
 		if (result == 1) {
 			System.out.println("Ball");
 			lastReturn = 1;
+			ramCount = 40;
 			return 1;
 		}
 		// 2 - Otherwise, keep nav-ing to random points.

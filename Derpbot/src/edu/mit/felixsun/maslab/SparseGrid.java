@@ -137,13 +137,13 @@ public class SparseGrid {
 					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx - reactorVoidWidth-1), (int) midy);
 				}
 				else if(endy == starty){
-					normPt1 = new SimpleEntry<Integer,Integer>((int)(startx), (int) midy + reactorVoidWidth+1);
-					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx), (int) midy - reactorVoidWidth-1);
+					normPt1 = new SimpleEntry<Integer,Integer>((int)(midx), (int) midy + reactorVoidWidth+1);
+					normPt2 = new SimpleEntry<Integer,Integer>((int)(midx), (int) midy - reactorVoidWidth-1);
 				}
 				else{
 					double normSlp = -1/slope;
-					normPt1 = new SimpleEntry<Integer,Integer>((int)(startx + reactorVoidWidth), (int)(midy + normSlp*reactorVoidWidth));
-					normPt2 = new SimpleEntry<Integer,Integer>((int)(startx - reactorVoidWidth), (int)(midy - normSlp*reactorVoidWidth));
+					normPt1 = new SimpleEntry<Integer,Integer>((int)(midx + reactorVoidWidth+ 5), (int)(midy + normSlp*(reactorVoidWidth+5)));
+					normPt2 = new SimpleEntry<Integer,Integer>((int)(midx - reactorVoidWidth- 5), (int)(midy - normSlp*(reactorVoidWidth+5)));
 				}
 				
 				

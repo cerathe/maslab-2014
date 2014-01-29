@@ -115,7 +115,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
-	    findBalls(hsvImage, data, greenLowerH, greenUpperH);
+	    findBalls(hsvImage, data, redLowerH, redUpperH);
 	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;

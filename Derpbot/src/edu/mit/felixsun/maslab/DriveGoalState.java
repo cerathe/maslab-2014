@@ -32,18 +32,19 @@ public class DriveGoalState extends State{
 		}
 		SimpleEntry<Integer,Integer> n1 = pt.normPt1;
 		SimpleEntry<Integer,Integer> n2 = pt.normPt2;
+		System.out.println(n1 + " " +n2);
 		LinkedList<SimpleEntry<Integer, Integer>> p1 = nav.naiveWallFollow(curr,n1);
 		LinkedList<SimpleEntry<Integer, Integer>> p2 = nav.naiveWallFollow(curr, n2);
-		System.out.println(p1);
+		System.out.println("p1: "+p1);
 		//Give the path to follow.
-		if(nav.loc.grid.getNeighbors(p1.peekLast()).contains(n1)){
+		if(nav.loc.grid.getNeighbors(p1.peekLast()).contains(n1) || p1.peekLast().equals(n1)){
 			System.out.println("1! "+p1.peekLast());
 			path = nav.cleanUpNaive(p1);
 			double xdiff = pt.actualMidpoint.getKey() - pt.normPt1.getKey();
 			double ydiff = pt.actualMidpoint.getValue() - pt.normPt1.getValue();
 			finalAngle = Math.atan2(xdiff, ydiff);
 		}
-		else if(nav.loc.grid.getNeighbors(p2.peekLast()).contains(n2)){
+		else if(nav.loc.grid.getNeighbors(p2.peekLast()).contains(n2) || p2.peekLast().equals(n2)){
 			System.out.println("2!");
 			path = nav.cleanUpNaive(p2);
 			double xdiff = pt.actualMidpoint.getKey() - pt.normPt2.getKey();
@@ -63,10 +64,12 @@ public class DriveGoalState extends State{
 		 * 2 - Done
 		 */
 		if(path==null){
+			System.out.println("1");
 			return 0;
 		}
 		else if(pfs==null){
-			pfs = new PathFollowState(speed/2, path);
+			System.out.println("2");
+			pfs = new PathFollowState(speed, path);
 			pfs.step(nav, s);
 			return 1;
 		}

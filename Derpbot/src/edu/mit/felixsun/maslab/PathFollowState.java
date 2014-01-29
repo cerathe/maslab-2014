@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 public class PathFollowState {
-	double tolerance = 5;
+	double tolerance = 2;
 	
 	double driveSpeed;
 	Iterator<SimpleEntry<Integer,Integer>> iterator;
@@ -35,6 +35,7 @@ public class PathFollowState {
 				thisPt = iterator.next();
 			}
 			else{
+				System.out.println("DONE");
 				return 1;
 			}
 		}
