@@ -14,7 +14,7 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 3;			// Inches / second
+	public final static double TRAVEL_DRIFT_SPEED = 10;			// Inches / second
 	public final static double TURN_DRIFT_SPEED = 0.3;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
@@ -72,6 +72,7 @@ public class Localization {
 		 * Kind of computationally intensive.
 		 * - Maybe we need to rethink this?
 		 */
+		System.out.println("Reloc");
 		int RELOCALIZE_PARTICLE_COUNT = 5000;
 		ArrayList<Pose> hypotheses = new ArrayList<Pose>();
 		// Make a whole bunch of hypotheses.
@@ -79,7 +80,7 @@ public class Localization {
 			double angle = 2*Math.PI*rng.nextDouble() - Math.PI;
 			double x = rng.nextDouble() * grid.maxX;
 			double y = rng.nextDouble() * grid.maxY;
-			double prob = grid.stateLogProb(data.angles, x, y, angle);
+			double prob = grid.stateLogProb(data, x, y, angle);
 			hypotheses.add(new Pose(x, y, angle, prob));
 		}
 		Collections.sort(hypotheses, new ProbCompare());
@@ -88,6 +89,7 @@ public class Localization {
 		grid.robotX = bestGuess.x;
 		grid.robotY = bestGuess.y;
 		grid.robotTheta = bestGuess.theta;
+		relocalize = false;
 	}
 	
 	public void update(cvData data, Sensors sensors) {
@@ -150,7 +152,7 @@ public class Localization {
 			if (stuck && grid.closestOccupied(newX, newY) > Constants.ROBOT_WIDTH / 2 + 1) {
 				newProb = -100000000;
 			} else {
-				newProb = grid.stateLogProb(data.angles, newX, newY, newTheta) + oldPose.prob - normalization;
+				newProb = grid.stateLogProb(data, newX, newY, newTheta) + oldPose.prob - normalization;
 			}
 			robotPositions.set(i, new Pose(newX, newY, newTheta, newProb));
 		}

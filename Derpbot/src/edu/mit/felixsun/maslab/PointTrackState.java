@@ -8,9 +8,9 @@ public class PointTrackState extends State{
 	TurnState turnState = new TurnState();
 	double lastDiff;
 	
-	double acceptableAngle = 0.15;
+	double acceptableAngle = 0.5;
 	double driveSpeed;
-	double PGAIN = .0;
+	double PGAIN = .01;
 
 	
 	public PointTrackState(double speed){
@@ -47,10 +47,10 @@ public class PointTrackState extends State{
 		}
 		else if (angleDiff < 0){
 //			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, -2);
+			turnState.step(nav.loc, sensors, -1.3);
 		} else {
 //			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, 2);
+			turnState.step(nav.loc, sensors, 1.3);
 		}
 //		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		

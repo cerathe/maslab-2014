@@ -21,6 +21,7 @@ import devices.actuators.Cytron;
 import devices.actuators.DigitalOutput;
 import devices.actuators.PWMOutput;
 import devices.actuators.Servo1800A;
+import devices.actuators.Servo3001HB;
 import devices.sensors.AnalogInput;
 import devices.sensors.Encoder;
 import devices.sensors.Photoresistor;
@@ -158,8 +159,8 @@ public class Main {
 		DisplayWindow cameraPane = new DisplayWindow("Derp", 600, 600);
 		
 		Sensors sensors = new Sensors();
-		sensors.rightDriveMotor = new Cytron(7, 6);
-		sensors.leftDriveMotor = new Cytron(2, 1);
+		sensors.rightDriveMotor = new Cytron(4, 5);
+		sensors.leftDriveMotor = new Cytron(37, 0);
 		// Encoders: green - ground; blue - 5V; yellow - input A; white - input B.
 		sensors.leftEncoder = new Encoder(29, 30);
 		sensors.rightEncoder = new Encoder(31, 32);
@@ -168,12 +169,12 @@ public class Main {
 		DigitalOutput ground3 = new DigitalOutput(19);
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
-		sensors.photoresistor = new AnalogInput(12);
-		sensors.led = new DigitalOutput(9);
+		sensors.photoresistor = new AnalogInput(17);
+		sensors.led = new DigitalOutput(18);
 		//TODO: Connect sorting servo actually and fix Servo type and pin.
-		sensors.sorter = new Servo1800A(8);
+		sensors.sorter = new Servo3001HB(9);
 		sensors.rollerPWM = new PWMOutput(11);
-		sensors.rollerDirection = new DigitalOutput(36);
+		sensors.rollerDirection = new DigitalOutput(10);
 		sensors.spiralPWM = new PWMOutput(14);
 		sensors.spiralDirection = new DigitalOutput(13);
 		// Start serial communication.
@@ -183,10 +184,7 @@ public class Main {
 		} else {
 			comm = new SimMapleComm(null, sensors);
 		}
-		// 14 - PWM spiral
-		// 13 - DIR spiral
-		// 
-		System.out.println("B");
+
 		comm.registerDevice(sensors.leftDriveMotor);
 		comm.registerDevice(sensors.rightDriveMotor);
 		comm.registerDevice(sensors.leftEncoder);
@@ -198,12 +196,13 @@ public class Main {
 		
 		comm.registerDevice(sensors.photoresistor);
 		comm.registerDevice(sensors.led);
+		comm.registerDevice(sensors.sorter);
 		comm.registerDevice(sensors.rollerDirection);
 		comm.registerDevice(sensors.rollerPWM);
 		comm.registerDevice(sensors.spiralDirection);
 		comm.registerDevice(sensors.spiralPWM);
 		comm.initialize();
-		System.out.println("A");
+		
 		
 		ground1.setValue(false);
 		ground2.setValue(false);
@@ -211,8 +210,10 @@ public class Main {
 		ground4.setValue(false);
 		sensors.rollerDirection.setValue(false);
 		sensors.rollerPWM.setValue(1);
-		sensors.spiralPWM.setValue(0.4);
+		sensors.spiralPWM.setValue(0.6);
 		sensors.spiralDirection.setValue(true);
+		sensors.sorter.setAngle(sensors.sorter.getMinAngle());
+
 		comm.transmit();
 		
 		System.out.println(localization.grid.places);
@@ -237,7 +238,8 @@ public class Main {
 			}
 			goal.step(sensors);
 //			ball.step(navigation, sensors);
-//			sort.step(2400, 2800);
+//			sort.step(3300, 3400);
+
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			cameraPane.updateWindow(finalMap);
