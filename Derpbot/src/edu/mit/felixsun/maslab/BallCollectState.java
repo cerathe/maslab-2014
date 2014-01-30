@@ -25,11 +25,11 @@ public class BallCollectState extends State {
 		int destX, destY;
 		SimpleEntry<Integer,Integer> destination = null;
 		do {
-			System.out.println("Making new path");
+//			System.out.println("Making new path");
 			destX = rng.nextInt((int) nav.loc.grid.maxX);
 			destY = rng.nextInt((int) nav.loc.grid.maxY);
 			destination = new SimpleEntry<Integer,Integer>(destX, destY);
-		} while (!nav.loc.grid.accessibleArea.contains(destination)); 
+		} while (!nav.loc.grid.accessibleArea.containsKey(destination)); 
 		naiveWay = nav.naiveWallFollow(iPos, destination);
 		LinkedList<SimpleEntry<Integer, Integer>> theWay = nav.cleanUpNaive(naiveWay);
 		System.out.println(theWay);

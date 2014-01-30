@@ -142,7 +142,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = false;
+	final static boolean SIMULATE = true;
 	final static boolean PRACTICE = true;
 	public static void main(String[] args) {
 		cvData data;
