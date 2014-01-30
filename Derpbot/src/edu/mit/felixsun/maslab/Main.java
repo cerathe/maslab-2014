@@ -143,7 +143,7 @@ class cvHandle implements Runnable {
 
 public class Main {
 	final static boolean SIMULATE = false;
-	final static boolean PRACTICE = false;
+	final static boolean PRACTICE = true;
 	public static void main(String[] args) {
 		cvData data;
 		// Just a testing framework for the computer vision stuff.
@@ -206,9 +206,9 @@ public class Main {
 		sensors.rollerPWM.setValue(1);
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
-		sensors.sorter.setAngle(sensors.sorter.getMinAngle());
 		sensors.led.setValue(true);
-
+		sensors.sorter.setAngle((sensors.sorter.getMinAngle()+sensors.sorter.getMaxAngle())/2);
+		
 		comm.transmit();
 		
 		BotClientMap map;
@@ -251,8 +251,9 @@ public class Main {
 				localization.update(data, sensors);
 			}
 			//goal.step(sensors);
-			ball.step(navigation, sensors);
-			sort.step(200,110);
+//			ball.step(navigation, sensors);
+			System.out.println(sensors.photoresistor.getValue());
+			System.out.println(sort.step(80, 90));
 			
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
