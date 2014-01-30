@@ -9,8 +9,8 @@ import devices.sensors.AnalogInput;
 public class BallSortState extends State {
 
 	int ballDelay = 10;
-	int sortDelay = 5;
-	int pushDelay = 10;
+	int sortDelay = 10;
+	int pushDelay = 30;
 
 	public AnalogInput res;
 	public DigitalOutput redled;
@@ -44,14 +44,13 @@ public class BallSortState extends State {
 		greenled = sensors.greenled;
 		servo = sensors.sorter;
 
-		detect = new BallDetectState(sensors); 
-		midAngle = (servo.getMaxAngle() + servo.getMinAngle())/2;
+		midAngle = (servo.getMaxAngle() + servo.getMinAngle())/2+10;
 		maxAngle = servo.getMaxAngle()-5;
 		minAngle = servo.getMinAngle()+5;
-
+		sensors.sorter.setAngle(midAngle);
 	}
 
-	public int step(double redThresh, double greenThresh){
+	public int step(double ballThresh, double redThresh, double greenThresh){
 		/*
 		 * 2: ball has been successfully sorted; ok to try again.
 		 * 1: ball has been detected, try to sort;
@@ -62,15 +61,14 @@ public class BallSortState extends State {
 		if(!isBall){
 			if(ballCounter==0){
 				isBall=true;
+				isSorted = false;
 				colorCounter = sortDelay;
-				redled.setValue(false);
 				greenled.setValue(false);
-				redOn = false;
 				greenOn = false;
 				colorCounter = sortDelay;
 				return 1;
 			}
-			else if(res.getValue()>redThresh){
+			else if(res.getValue()>ballThresh){
 				ballCounter--;
 				return 0;
 			}
@@ -84,13 +82,13 @@ public class BallSortState extends State {
 			if(redVal==-1 && redOn && !greenOn){
 				//keep red on for some ticks;
 				if(colorCounter==0){
-					redVal = res.getValue();
+					redVal = -res.getValue();
 					redled.setValue(false);
 					redOn = false;
 					greenled.setValue(true);
 					greenOn = true;
 					colorCounter = sortDelay;
-					return 1;
+					return 3;
 				}
 				else{
 					colorCounter--;
@@ -103,7 +101,7 @@ public class BallSortState extends State {
 					greenVal = res.getValue();
 					greenled.setValue(false);
 					greenOn = false;
-					return 1;
+					return 3;
 				}
 				else{
 					colorCounter--;
@@ -124,21 +122,38 @@ public class BallSortState extends State {
 				servo.setAngle(minAngle);
 				return 1;
 			}
-			else{
+			else if(greenVal<greenThresh && redVal> redThresh){
 				servo.setAngle(maxAngle);
-				return 1;
+				return 5;
+			}
+			else{
+				isBall = false;
+				isSorted = false;
+				ballCounter  = ballDelay;
+				redVal = -1;
+				greenVal = -1;
+				redOn = true;
+				greenOn =true;
+				redled.setValue(true);
+				greenled.setValue(true);
+				return 0;
 			}
 		}
 		else if(sortCounter>0){
 			sortCounter--;
-			return 1;
+			return 4;
 		}
 		else{
 			servo.setAngle(midAngle);
 			redled.setValue(true);
 			greenled.setValue(true);
+			redVal = -1;
+			greenVal = -1;
 			redOn = true;
 			greenOn = true;
+			ballCounter = ballDelay;
+			isBall = false;
+			isSorted = false;
 			return 2;
 		}
 	}

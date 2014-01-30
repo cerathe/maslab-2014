@@ -255,7 +255,7 @@ public class Main {
 			//goal.step(sensors);
 //			ball.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
-			System.out.println(sort.step(80, 90));
+			System.out.println(sort.step(1450, -105,860));
 			
 //			straight.step(localization, sensors, 12);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
