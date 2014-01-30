@@ -45,7 +45,7 @@ public class PointTrackState extends State{
 		}
 //		System.out.println(angleDiff);
 		if(System.currentTimeMillis() - startTime>expectedTime){
-			return 1;
+			return 2;
 		}
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
