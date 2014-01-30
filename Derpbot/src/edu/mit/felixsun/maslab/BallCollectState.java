@@ -22,13 +22,15 @@ public class BallCollectState extends State {
 	void newGoal(Navigation nav) {
 		SimpleEntry<Integer,Integer> iPos = new SimpleEntry<Integer,Integer>((int) nav.loc.grid.robotX,(int) nav.loc.grid.robotY);
 		LinkedList<SimpleEntry<Integer, Integer>> naiveWay = new LinkedList<SimpleEntry<Integer, Integer>>();
-		while (naiveWay.size() == 0) {
+		int destX, destY;
+		SimpleEntry<Integer,Integer> destination = null;
+		do {
 			System.out.println("Making new path");
-			int destX = rng.nextInt((int) nav.loc.grid.maxX);
-			int destY = rng.nextInt((int) nav.loc.grid.maxY);
-			SimpleEntry<Integer,Integer> destination = new SimpleEntry<Integer,Integer>(destX, destY);
-			naiveWay = nav.naiveWallFollow(iPos, destination);
-		}
+			destX = rng.nextInt((int) nav.loc.grid.maxX);
+			destY = rng.nextInt((int) nav.loc.grid.maxY);
+			destination = new SimpleEntry<Integer,Integer>(destX, destY);
+		} while (!nav.loc.grid.accessibleArea.contains(destination)); 
+		naiveWay = nav.naiveWallFollow(iPos, destination);
 		LinkedList<SimpleEntry<Integer, Integer>> theWay = nav.cleanUpNaive(naiveWay);
 		System.out.println(theWay);
 		myPath = new PathFollowState(Constants.SPEED, theWay);

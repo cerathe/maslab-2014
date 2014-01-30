@@ -25,6 +25,7 @@ public class SparseGrid {
 	public double gridSize; // Inches per grid square
 	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> map;
 	public ConcurrentHashMap<Entry<Integer, Integer>, Integer> errorDistances;
+	public ConcurrentHashMap<Entry<Integer, Integer>, Boolean> accessibleArea;
 	public BotClientMap theMap;
 	public double BASELINE_PROB = 0.0001;		// Probability that we observe a random (wrong) wall segment.
 	public double MAX_ERROR_RADIUS = 18;		// The farthest out we search, when looking for the closest wall.
@@ -165,6 +166,38 @@ public class SparseGrid {
 		robotY = theMap.startPose.y * theMap.gridSize;
 		robotTheta = theMap.startPose.theta;
 	}
+	
+	void fillAccessible(){
+		/*
+		 * Fills in accessibleArea, which tells us which points are reachable.
+		 */
+		int CEILING = 1000;
+		Entry<Integer, Integer> robotLoc = new SimpleEntry<Integer, Integer>((int) robotX, (int) robotY);
+		accessibleArea.put(robotLoc, true);
+		Set<Entry<Integer, Integer>> oldQueue = new HashSet<Entry<Integer, Integer>>();
+		Set<Entry<Integer, Integer>> newQueue = new HashSet<Entry<Integer, Integer>>();
+		oldQueue.add(robotLoc);
+		int i = 0;
+		int[] deltaX = {0, 0, -1, 1};
+		int[] deltaY = {-1, 1, 0, 0};
+		while (i < CEILING && oldQueue.size() > 0) {
+			for (Entry<Integer, Integer> point : oldQueue) {
+				for (int j=0; j<4; j++) {
+					int newX = deltaX[j] + point.getKey();
+					int newY = deltaY[j] + point.getValue();
+					Entry<Integer, Integer> newPt = new SimpleEntry<Integer, Integer>(newX, newY);
+					if (!accessibleArea.contains(newPt)) {
+						accessibleArea.put(newPt, true);
+						newQueue.add(newPt);
+					}
+				}
+				oldQueue = newQueue;
+				newQueue = new HashSet<Entry<Integer, Integer>>();
+			}
+			i++;
+		}
+	}
+	
 	
 	void preprocessErrorDistances() {
 		/*
