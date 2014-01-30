@@ -168,7 +168,8 @@ public class Main {
 		DigitalOutput ground4 = new DigitalOutput(20);
 		
 		sensors.photoresistor = new AnalogInput(17);
-		sensors.led = new DigitalOutput(18);
+		sensors.redled = new DigitalOutput(18);
+		sensors.greenled = new DigitalOutput(7);
 		//TODO: Connect sorting servo actually and fix Servo type and pin.
 		sensors.sorter = new Servo3001HB(12);
 		sensors.rollerPWM = new PWMOutput(11);
@@ -191,7 +192,8 @@ public class Main {
 		comm.registerDevice(ground4);
 		
 		comm.registerDevice(sensors.photoresistor);
-		comm.registerDevice(sensors.led);
+		comm.registerDevice(sensors.redled);
+		comm.registerDevice(sensors.greenled);
 		comm.registerDevice(sensors.sorter);
 		comm.registerDevice(sensors.rollerDirection);
 		comm.registerDevice(sensors.rollerPWM);
@@ -201,12 +203,12 @@ public class Main {
 		
 		ground3.setValue(false);
 		ground4.setValue(false);
-		sensors.led.setValue(true);
+		sensors.redled.setValue(true);
+		sensors.greenled.setValue(true);
 		sensors.rollerDirection.setValue(false);
 		sensors.rollerPWM.setValue(1);
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
-		sensors.led.setValue(true);
 		sensors.sorter.setAngle((sensors.sorter.getMinAngle()+sensors.sorter.getMaxAngle())/2);
 		
 		comm.transmit();
