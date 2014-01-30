@@ -30,7 +30,8 @@ public class PathFollowState {
 //		System.out.println(path);
 		SimpleEntry<Integer,Integer> currentPos = new SimpleEntry<Integer,Integer>((int)nav.loc.grid.robotX, (int)nav.loc.grid.robotY);
 		double dist = nav.loc.grid.dist(currentPos, thisPt);
-		if(dist<=tolerance){
+		int currState = pointTrack.step(nav,sensors,thisPt);
+		if(currState==1){
 			if(iterator.hasNext()){
 				thisPt = iterator.next();
 			}
@@ -39,9 +40,7 @@ public class PathFollowState {
 				return 1;
 			}
 		}
-		else{
-			pointTrack.step(nav, sensors, thisPt);
-		}
+
 		return 0;
 	}
 
