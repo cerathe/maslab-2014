@@ -8,8 +8,8 @@ import devices.sensors.AnalogInput;
 
 public class BallSortState extends State {
 
-	int ballDelay = 20;
-	int sortDelay = 20;
+	int ballDelay = 10;
+	int sortDelay = 5;
 	int pushDelay = 10;
 
 	public AnalogInput res;
@@ -43,7 +43,7 @@ public class BallSortState extends State {
 
 	}
 
-	public int step(double ballThresh, double greenThresh){
+	public int step(double redThresh, double greenThresh){
 		/*
 		 *  2: ball has been successfully sorted; ok to try again.
 		 * 1: ball has been detected, try to sort;
@@ -54,12 +54,10 @@ public class BallSortState extends State {
 		if(!isBall){
 			if(ballCounter==0){
 				isBall=true;
-				//if there is a ball, turn the LED on.
-				led.setValue(true);
 				colorCounter = sortDelay;
 				return 1;
 			}
-			else if(res.getValue()<ballThresh){
+			else if(res.getValue()>redThresh){
 				ballCounter--;
 				return 0;
 			}
@@ -72,19 +70,23 @@ public class BallSortState extends State {
 		if(!isSorted){
 			if(colorCounter==0){
 				isSorted = true;
-				if(isRed){
+				if(res.getValue()>greenThresh){
 					servo.setAngle(minAngle);
 					sortCounter = pushDelay;
 					return 1;
 				}
-				else{
+				else if(res.getValue()>redThresh) {
 					servo.setAngle(maxAngle);
 					sortCounter = pushDelay;
 					return 1;
 				}
+				else{
+					isBall = false;
+					ballCounter = ballDelay;
+					return 0;
+				}
 			}
 			else{
-				isRed = isRed && (res.getValue()<greenThresh);
 				colorCounter --;
 				return 1;
 			}
@@ -92,9 +94,11 @@ public class BallSortState extends State {
 		//if you've sorted it, wait before replacing the sorter.
 
 		if(sortCounter==0){
-			led.setValue(false);
 			servo.setAngle(midAngle);
 			ballCounter = ballDelay;
+			isBall = false;
+			isSorted = false;
+			isRed = false;
 			return 2;
 		}
 		else{
