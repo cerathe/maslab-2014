@@ -207,11 +207,11 @@ public class Main {
 		
 		ground3.setValue(false);
 		ground4.setValue(false);
-		sensors.redled.setValue(true);
+		sensors.redled.setValue(false);
 		sensors.greenled.setValue(true);
 		sensors.rollerDirection.setValue(false);
 		sensors.rollerPWM.setValue(1);
-		sensors.spiralPWM.setValue(0.4);
+		sensors.spiralPWM.setValue(0.3);
 		sensors.spiralDirection.setValue(true);
 		sensors.sorter.setAngle((sensors.sorter.getMinAngle()+sensors.sorter.getMaxAngle())/2);
 		sensors.leftDump.setAngle(sensors.leftDump.getMaxAngle());
@@ -248,7 +248,7 @@ public class Main {
 			}
 			topState.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
-			System.out.println(sort.step(1450, -105,860));
+			System.out.println(sort.step(1900, -1700,-2300));
 			
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			comm.transmit();

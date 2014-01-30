@@ -10,7 +10,7 @@ public class PointTrackState extends State{
 	
 	double acceptableAngle = 0.5;
 	double driveSpeed;
-	double PGAIN = .01;
+	double PGAIN = .05;
 
 	
 	public PointTrackState(double speed){
@@ -42,6 +42,7 @@ public class PointTrackState extends State{
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
 			motorB = driveSpeed + angleDiff * PGAIN;
+			System.out.format("Motor speeds: %f, %f", motorA, motorB);
 			sensors.leftDriveMotor.setSpeed(motorA);
 			sensors.rightDriveMotor.setSpeed(-motorB);
 		}

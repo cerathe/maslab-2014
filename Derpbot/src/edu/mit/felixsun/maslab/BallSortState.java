@@ -9,7 +9,7 @@ import devices.sensors.AnalogInput;
 public class BallSortState extends State {
 
 	int ballDelay = 10;
-	int sortDelay = 10;
+	int sortDelay = 15;
 	int pushDelay = 30;
 
 	public AnalogInput res;
@@ -79,31 +79,18 @@ public class BallSortState extends State {
 		}
 		//if there is a ball, try to sort it.
 		if(!isSorted){
-			if(redVal==-1 && redOn && !greenOn){
+			if(redOn && !greenOn){
 				//keep red on for some ticks;
 				if(colorCounter==0){
-					redVal = -res.getValue();
-					redled.setValue(false);
-					redOn = false;
+					redVal += -res.getValue();
+					redVal = redVal/sortDelay;
 					greenled.setValue(true);
 					greenOn = true;
 					colorCounter = sortDelay;
 					return 3;
 				}
 				else{
-					colorCounter--;
-					return 1;
-				}
-			}
-			else if(greenVal==-1 && greenOn && !redOn){
-				//keep green on for some ticks;
-				if(colorCounter==0){
-					greenVal = res.getValue();
-					greenled.setValue(false);
-					greenOn = false;
-					return 3;
-				}
-				else{
+					redVal += -res.getValue();
 					colorCounter--;
 					return 1;
 				}
@@ -118,11 +105,11 @@ public class BallSortState extends State {
 
 		if(sortCounter == pushDelay){
 			sortCounter--;
-			if(greenVal>greenThresh && redVal<redThresh){
+			if(redVal<redThresh){
 				servo.setAngle(minAngle);
 				return 1;
 			}
-			else if(greenVal<greenThresh && redVal> redThresh){
+			else if(redVal> redThresh){
 				servo.setAngle(maxAngle);
 				return 5;
 			}

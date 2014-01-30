@@ -140,14 +140,14 @@ public class DriveGoalState extends State{
 				substate = 2;
 				s.leftDriveMotor.setSpeed(0);
 				s.rightDriveMotor.setSpeed(0);
-				deadReckonCount = 30;
+				deadReckonCount = 50;
 				return 1;
 			}
 		} else if (substate == 2) {
 			// Dead-reckon into goal.
 			System.out.println("Ramming goal.");
 			if (deadReckonCount > 0 && !nav.loc.stuck) {
-				deadReckon.step(nav.loc, s, 18);
+				deadReckon.step(nav.loc, s, 8);
 				deadReckonCount--;
 				return 1;
 			} else {

@@ -4,7 +4,7 @@ public class TurnState extends State {
 	/*
 	 * Gets the robot to turn in place.
 	 */
-	static final double FORWARD_GAIN = 0.001; // Motor units / (inch/second)
+	static final double FORWARD_GAIN = 0.002; // Motor units / (inch/second)
 	static final double TURN_GAIN = 0.001;	 // Motor units / (radian/second)
 	
 	double lastLeft;

@@ -32,7 +32,7 @@ public class GamePlayState extends State{
 			sensors.rightDriveMotor.setSpeed(0);
 			return 1;
 		}
-		if (System.nanoTime() > getTime(10) && scoringAttempts == 0) {
+		if (System.nanoTime() > getTime(45) && scoringAttempts == 0) {
 			// Try to dump
 			System.out.println("Trying to score");
 			if (!goalSet) {
