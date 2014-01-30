@@ -82,7 +82,8 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 120), new Scalar(180, 80, 255), output);
+		//Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -116,6 +117,7 @@ public class ImageProcessor {
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
 	    findBalls(hsvImage, data);
+	    findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -223,7 +225,7 @@ public class ImageProcessor {
 			// Calculate angle and distance.
 			double angularPos = angularPosition(boundingRect.x+boundingRect.width/2, hsvImage.width());
 			// OK, this is really hacky, but it should work.
-			double shortHeight = boundingRect.height * (-0.5 + blobArea / boundingRect.area());
+			double shortHeight = boundingRect.height * (blobArea / boundingRect.area());
 			double midHeight = (boundingRect.height + shortHeight) / 2;
 			double distance = distanceConvert(midHeight, COLORED_STRIPE_HEIGHT, angularPos);
 			Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);

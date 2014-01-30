@@ -11,6 +11,7 @@ public class DriveGoalState extends State{
 	PathFollowState pfs;
 	TurnState ts = new TurnState();
 	DriveStraightState deadReckon = new DriveStraightState();
+	PointTrackState pointTrack = new PointTrackState(Constants.SPEED);
 	int substate = 0;
 	int deadReckonCount = 0;
 	int dumpCount = 0;
@@ -70,12 +71,35 @@ public class DriveGoalState extends State{
 		 * 1 - Nav-ing
 		 * 2 - Done
 		 */
-		double ANGLE_TOLERANCE = 0.1;
+		double ANGLE_TOLERANCE = 0.05;
 		if (substate == 0) {
+			System.out.println("Driving towards waypoint");
 			// Drive towards waypoint
 			if(path==null){
 				return 0;
 			}
+			if(deadReckonCount>1){
+				//backing up
+				deadReckonCount--;
+				pointTrack.step(nav, s, goal.actualMidpoint);
+				return 1;
+			}
+			if (deadReckonCount==2) {
+				nav.loc.relocalize = true;
+				deadReckonCount--;
+			}
+			
+			if(deadReckonCount==1){
+				setGoal(goal);
+				deadReckonCount--;
+				return 1;
+			}
+			if (nav.loc.stuck) {
+				// Stuck.
+				deadReckonCount = 20;
+				return 1;
+			}
+			
 			else if(pfs==null){
 				pfs = new PathFollowState(speed, path);
 				pfs.step(nav, s);
@@ -85,7 +109,7 @@ public class DriveGoalState extends State{
 				//If you've reached the point, turn to face it.
 				SimpleEntry<Integer, Integer> robotLoc = 
 						new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
-				if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 3){
+				if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 2){
 					s.leftDriveMotor.setSpeed(0);
 					s.rightDriveMotor.setSpeed(0);
 					substate = 1;
@@ -97,6 +121,7 @@ public class DriveGoalState extends State{
 				}
 			}
 		} else if (substate == 1) {
+			System.out.println("Turning towards goal");
 			// Turn towards goal
 			double xDiff = goal.actualMidpoint.getKey() - nav.loc.grid.robotX;
 			double yDiff = goal.actualMidpoint.getValue() - nav.loc.grid.robotY;
@@ -105,53 +130,56 @@ public class DriveGoalState extends State{
 			angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
 			if (angleDiff < -ANGLE_TOLERANCE){
 //				System.out.println("Turn A");
-				ts.step(nav.loc, s, -1.3);
+				ts.step(nav.loc, s, -13 * Constants.SPEED);
 				return 1;
 			} else if (angleDiff > ANGLE_TOLERANCE) {
 //				System.out.println("Turn B");
-				ts.step(nav.loc, s, 1.3);
+				ts.step(nav.loc, s, 13 * Constants.SPEED);
 				return 1;
 			} else {
 				substate = 2;
 				s.leftDriveMotor.setSpeed(0);
 				s.rightDriveMotor.setSpeed(0);
-				deadReckonCount = 100;
+				deadReckonCount = 30;
 				return 1;
 			}
 		} else if (substate == 2) {
 			// Dead-reckon into goal.
+			System.out.println("Ramming goal.");
 			if (deadReckonCount > 0 && !nav.loc.stuck) {
-				deadReckon.step(nav.loc, s, 10);
+				deadReckon.step(nav.loc, s, 18);
 				deadReckonCount--;
 				return 1;
 			} else {
 				substate = 3;
 				s.leftDriveMotor.setSpeed(0);
 				s.rightDriveMotor.setSpeed(0);
-				s.rightDump.setAngle(s.rightDump.getMinAngle());
-				dumpCount = 50;
+				s.rightDump.setAngle(s.rightDump.getMaxAngle());
+				dumpCount = 40;
 				return 1;
 			}
 		} else if (substate == 3) {
-			// Dump balls.  TODO: fill this in.
+			System.out.println("Dumping");
 			if (dumpCount > 0) {
 				dumpCount--;
+				return 1;
 			} else {
-				s.rightDump.setAngle(s.rightDump.getMaxAngle() - 5);
-				backCount = 50;
+				s.rightDump.setAngle(s.rightDump.getMinAngle());
+				backCount = 30;
 				substate = 4;
+				return 1;
 			}
-			return 1;
 		} else if (substate == 4) {
+			System.out.println("Backing up");
 			// Back out.
 			if (backCount > 0) {
-				deadReckon.step(nav.loc, s, -10);
+				deadReckon.step(nav.loc, s, -5);
 				backCount--;
+				return 1;
 			} else {
 				substate = 5;
 				s.leftDriveMotor.setSpeed(0);
 				s.rightDriveMotor.setSpeed(0);
-				nav.loc.relocalize = true;
 				return 1;				
 			}
 		}

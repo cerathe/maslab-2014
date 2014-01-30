@@ -12,14 +12,14 @@ import comm.BotClientMap;
 import comm.BotClientMap.Pose;
 
 public class Localization {
-	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
+	public final static int PARTICLE_COUNT = 50; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 30;		// How many samples do we keep at the end of each step?
 	public final static double TRAVEL_DRIFT_SPEED = 3;			// Inches / second
 	public final static double TURN_DRIFT_SPEED = 0.3;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.02;
-	public final static double STUCK_VEL = 0.1;		// Inches/second
+	public final static double STUCK_VEL = 1;		// Inches/second
 	
 	BotClientMap map;
 	public SparseGrid grid;
@@ -131,7 +131,7 @@ public class Localization {
 		} else {
 			stuck = false;
 		}
-		
+		System.out.println(turn);
 		// Update each particle with the expected drift.
 		// Update the probability of each particle.
 		for (int i=0; i<PARTICLE_COUNT; i++) {

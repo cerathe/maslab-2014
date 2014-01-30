@@ -142,8 +142,8 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
-	final static boolean PRACTICE = false;
+	final static boolean SIMULATE = false;
+	final static boolean PRACTICE = true;
 	public static void main(String[] args) {
 		cvData data;
 		// Just a testing framework for the computer vision stuff.
@@ -176,6 +176,8 @@ public class Main {
 		sensors.rollerDirection = new DigitalOutput(10);
 		sensors.spiralPWM = new PWMOutput(14);
 		sensors.spiralDirection = new DigitalOutput(13);
+		sensors.rightDump = new Servo3001HB(2);
+		sensors.leftDump = new Servo3001HB(9);
 		// Start serial communication.
 		CommInterface comm;
 		if (!SIMULATE) {
@@ -199,6 +201,8 @@ public class Main {
 		comm.registerDevice(sensors.rollerPWM);
 		comm.registerDevice(sensors.spiralDirection);
 		comm.registerDevice(sensors.spiralPWM);
+		comm.registerDevice(sensors.leftDump);
+		comm.registerDevice(sensors.rightDump);
 		comm.initialize();
 		
 		ground3.setValue(false);
@@ -210,6 +214,8 @@ public class Main {
 		sensors.spiralPWM.setValue(0.4);
 		sensors.spiralDirection.setValue(true);
 		sensors.sorter.setAngle((sensors.sorter.getMinAngle()+sensors.sorter.getMaxAngle())/2);
+		sensors.leftDump.setAngle(sensors.leftDump.getMaxAngle());
+		sensors.rightDump.setAngle(sensors.leftDump.getMinAngle());
 		
 		comm.transmit();
 		
