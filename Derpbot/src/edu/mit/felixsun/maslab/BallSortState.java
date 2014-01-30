@@ -8,13 +8,24 @@ import devices.sensors.AnalogInput;
 
 public class BallSortState extends State {
 
+	int ballDelay = 20;
+	int sortDelay = 20;
+	int pushDelay = 10;
+
 	public AnalogInput res;
 	public DigitalOutput led;
 	public Servo servo;
-	public boolean sorted = false;
-	public int countdown;
-	int countdown2;
-	int foundBall;
+	
+	//switches
+	boolean isBall = false;
+	boolean isSorted = false;
+	boolean isRed = false;
+	
+	//counters
+	int ballCounter = ballDelay;
+	int colorCounter = sortDelay;
+	int sortCounter = pushDelay;
+	
 	double midAngle;
 	double maxAngle;
 	double minAngle;
@@ -24,9 +35,7 @@ public class BallSortState extends State {
 		res = sensors.photoresistor;
 		led = sensors.led;
 		servo = sensors.sorter;
-		countdown = 0;
-		countdown2 = 0;
-		foundBall = 0;
+
 		detect = new BallDetectState(sensors); 
 		midAngle = (servo.getMaxAngle() + servo.getMinAngle())/2;
 		maxAngle = servo.getMaxAngle()-5;
@@ -35,70 +44,62 @@ public class BallSortState extends State {
 	}
 
 	public int step(double ballThresh, double greenThresh){
-		/* toGo = 1: ball has been detected, try to sort;
-		 * toGo = 0: no ball; return 0;
+		/*
+		 *  2: ball has been successfully sorted; ok to try again.
+		 * 1: ball has been detected, try to sort;
+		 * 0: no ball; return 0;
 		 */ 
-		
-		if(countdown==0){
-			if(countdown2>0){
-				servo.setAngle(midAngle);
-				countdown2--;
+
+		//check if there is a ball by making sure you get valid values for n straight ticks
+		if(!isBall){
+			if(ballCounter==0){
+				isBall=true;
+				//if there is a ball, turn the LED on.
+				led.setValue(true);
+				colorCounter = sortDelay;
 				return 1;
 			}
-			//If we aren't sorting, check if we need to.
-			if(!toSort){
-				System.out.println("No ball :(");
-				servo.setAngle(midAngle);
-				int toGo = detect.step(ballThresh);
-				if(toGo==1){
-					toSort = true;
-					led.setValue(true);
-					foundBall = 20;
-				}
+			else if(res.getValue()<ballThresh){
+				ballCounter--;
 				return 0;
-			}
-			if(foundBall>0){
-				servo.setAngle(midAngle);
-				if(res.getValue()<ballThresh){					
-					foundBall--;
-				}
-				else{
-					foundBall=0;
-					toSort = false;
-				}
-				return 0;
-			}
-			toSort = false;
-			
-			//If we are sorting, sort.
-			boolean isRed = false;
-			System.out.println(res.getValue());
-			if(res.getValue()>greenThresh){
-				//empirical observation that green does not return false reds.
-				isRed = true;
-			}
-			System.out.println(isRed);
-			//TODO: Move the servos
-			countdown = 20;
-			countdown2 = 20;
-			if(isRed){
-				System.out.println("RED!");
-				//sort to one side
-				servo.setAngle(minAngle);
-				sorted = true;
 			}
 			else{
-				System.out.println("GREEN!");
-				//sort to other side
-				servo.setAngle(maxAngle);
-				sorted = true;
+				ballCounter = ballDelay;
+				return 0;
 			}
+		}
+		//if there is a ball, try to sort it.
+		if(!isSorted){
+			if(colorCounter==0){
+				isSorted = true;
+				if(isRed){
+					servo.setAngle(minAngle);
+					sortCounter = pushDelay;
+					return 1;
+				}
+				else{
+					servo.setAngle(maxAngle);
+					sortCounter = pushDelay;
+					return 1;
+				}
+			}
+			else{
+				isRed = isRed && (res.getValue()<greenThresh);
+				colorCounter --;
+				return 1;
+			}
+		}
+		//if you've sorted it, wait before replacing the sorter.
+
+		if(sortCounter==0){
 			led.setValue(false);
+			servo.setAngle(midAngle);
+			ballCounter = ballDelay;
+			return 2;
 		}
 		else{
-			countdown--;
-			//			System.out.println(countdown);
+			sortCounter--;
+			return 1;
 		}
-		return 1;
 	}
 }
