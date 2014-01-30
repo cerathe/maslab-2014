@@ -40,7 +40,9 @@ public class PathFollowState {
 				return 1;
 			}
 		}
-
+		else if(currState == 2){ //If the path failed...
+			return 1;
+		}
 		return 0;
 	}
 
