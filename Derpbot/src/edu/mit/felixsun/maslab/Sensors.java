@@ -12,7 +12,8 @@ public class Sensors {
 	public Encoder rightEncoder;
 	public Cytron leftDriveMotor;
 	public Cytron rightDriveMotor;
-	public DigitalOutput led;
+	public DigitalOutput redled;
+	public DigitalOutput greenled;
 	public AnalogInput photoresistor;
 	public Servo3001HB sorter;
 	public Servo3001HB leftDump;
