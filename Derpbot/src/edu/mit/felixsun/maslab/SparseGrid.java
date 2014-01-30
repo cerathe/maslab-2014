@@ -35,6 +35,8 @@ public class SparseGrid {
 	public double robotTheta;
 	double maxX;
 	double maxY;
+	double minX;
+	double minY;
 	double width;
 	int voidWidth; //clearance from the walls in grid spaces
 	int reactorVoidWidth; //clearance from the reactors in grid spaces
@@ -76,6 +78,8 @@ public class SparseGrid {
 		this.theMap = theMap;
 		maxX = 0;
 		maxY = 0;
+		minX = 10000;
+		minY = 10000;
 		width = Constants.ROBOT_WIDTH;
 		voidWidth = (int) (width / 2 + 1);
 		reactorVoidWidth = voidWidth + 6;
@@ -99,8 +103,11 @@ public class SparseGrid {
 			int starty = (int) (thisWall.start.y * scaleFactor);
 			int endx = (int) (thisWall.end.x * scaleFactor);
 			int endy = (int) (thisWall.end.y * scaleFactor);
-			if(Math.max(startx, endx)>mX){mX = Math.max(startx,endx);}
-			if(Math.max(starty, endy)>mY){mY = Math.max(starty,endy);}
+			if(Math.max(startx, endx)>maxX){maxX = Math.max(startx,endx);}
+			if(Math.max(starty, endy)>maxY){maxY = Math.max(starty,endy);}
+			if(Math.min(startx, endx)<minX){minX = Math.min(startx, endx);}
+			if(Math.min(starty, endy)<minY){minY = Math.min(startx, endx);}
+			
 			double slope = (endy-starty)/((double)(endx - startx));
 			// If this wall is a landmark, mark it.
 			if (thisWall.type.ordinal() == 3) {
@@ -152,8 +159,6 @@ public class SparseGrid {
 			}
 			
 		}
-		this.maxX = mX;
-		this.maxY = mY;
 		
 		// Get robot starting position.
 		robotX = theMap.startPose.x * theMap.gridSize;
