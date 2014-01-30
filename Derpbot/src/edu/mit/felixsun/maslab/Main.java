@@ -142,8 +142,8 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = false;
-	final static boolean PRACTICE = true;
+	final static boolean SIMULATE = true;
+	final static boolean PRACTICE = false;
 	public static void main(String[] args) {
 		cvData data;
 		// Just a testing framework for the computer vision stuff.
@@ -226,19 +226,7 @@ public class Main {
 		}
 		Localization localization = new Localization(data, map);
 		Navigation navigation = new Navigation(localization);
-		
-		System.out.println(localization.grid.places);
-		PointOfInterest reactor = localization.grid.places.get(1);
-		System.out.println(reactor.normPt1);
-		DriveGoalState goal = new DriveGoalState(Constants.SPEED, navigation);
-		goal.setGoal(reactor);
-		LinkedList<SimpleEntry<Integer, Integer>> path = navigation.naiveWallFollow(22, 22,14,34);
-		path = navigation.cleanUpNaive(path);
-		System.out.println("Pah: "+path);
-		BallCollectState ball = new BallCollectState(navigation);
-		BallSortState sort = new BallSortState(sensors);
-		DriveStraightState straight = new DriveStraightState();
-		TurnState turn = new TurnState();
+		GamePlayState topState = new GamePlayState(navigation);
 		
 		while (true) {
 			comm.updateSensorData();
@@ -250,12 +238,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			//goal.step(sensors);
-//			ball.step(navigation, sensors);
-			System.out.println(sensors.photoresistor.getValue());
-			System.out.println(sort.step(80, 90));
-			
-//			straight.step(localization, sensors, 12);
+			topState.step(navigation, sensors);
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			comm.transmit();
 			cameraPane.updateWindow(finalMap);
