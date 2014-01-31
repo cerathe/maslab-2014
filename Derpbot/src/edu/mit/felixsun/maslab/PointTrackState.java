@@ -6,7 +6,7 @@ import comm.BotClientMap.Pose;
 
 public class PointTrackState extends State{
 	double tolerance = 5;
-	double lowestSpeed = 2; // in/s
+	double lowestSpeed = 3; // in/s
 	
 	TurnState turnState = new TurnState();
 	double lastDiff;

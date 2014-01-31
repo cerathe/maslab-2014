@@ -28,7 +28,7 @@ public class ImageProcessor {
 	static int greenLowerH = 40;
 	static int greenUpperH = 80;
 	static int tealLowerH = 80;
-	static int tealUpperH = 100;
+	static int tealUpperH = 95;
 	static int redLowerH = 170;
 	static int redUpperH = 10;
 	static int blueLowerH = 100;
@@ -116,8 +116,8 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
-	    processedImage = findBalls(hsvImage, data);
-	    findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
+	    findBalls(hsvImage, data);
+	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -195,7 +195,7 @@ public class ImageProcessor {
 	static Mat findStripe(Mat hsvImage, cvData data, int lowerH, int upperH, int landmarkIndex) {
 		// This is a potential wall stripe.
 		// Is the rectangle filled enough?
-		double MIN_STRIPE_AREA = 100;	// For red and green wall stripes.
+		double MIN_STRIPE_AREA = 400;	// For red and green wall stripes.
 		double COLORED_STRIPE_HEIGHT = 2;
 		int MAX_STRIPE_HEIGHT = 250;
 		double MIN_FILL_PROPORTION = 0.4;

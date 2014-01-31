@@ -60,14 +60,14 @@ public class DriveGoalState extends State{
 		 * 2 - Done
 		 * 3 - Stuck
 		 */
-		double ANGLE_TOLERANCE = 0.05;
+		double ANGLE_TOLERANCE = 0.1;
 		if (substate == 0) {
 			System.out.println("Driving towards waypoint");
 			// Drive towards waypoint
 			if(path==null){
 				return 0;
 			}
-			if (nav.loc.goalDistance < 24) {
+			if (nav.loc.goalDistance < 12) {
 				// Ram the goal directly.
 				substate = 2;
 				deadReckonCount = 50;
@@ -101,7 +101,7 @@ public class DriveGoalState extends State{
 		} else if (substate == 1) {
 			if (turnTimer == 0) {
 				// That didn't work :(
-				return 0;
+				return 3;
 			}
 			turnTimer--;
 			System.out.println("Turning towards goal");
@@ -143,12 +143,17 @@ public class DriveGoalState extends State{
 				deadReckonCount--;
 				return 1;
 			} else {
-				substate = 3;
-				s.leftDriveMotor.setSpeed(0);
-				s.rightDriveMotor.setSpeed(0);
-				s.rightDump.setAngle(s.rightDump.getMaxAngle());
-				dumpCount = 40;
-				return 1;
+				if (nav.loc.goalAngle == 0 || Math.abs(nav.loc.goalAngle - Math.PI/2) < 0.1) {
+					substate = 3;
+					s.leftDriveMotor.setSpeed(0);
+					s.rightDriveMotor.setSpeed(0);
+					s.rightDump.setAngle(s.rightDump.getMaxAngle());
+					dumpCount = 40;
+					return 1;
+				} else {
+					// We are probably stuck.
+					return 3;
+				}
 			}
 		} else if (substate == 3) {
 			System.out.println("Dumping");
