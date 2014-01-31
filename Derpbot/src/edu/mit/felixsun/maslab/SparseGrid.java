@@ -83,7 +83,7 @@ public class SparseGrid {
 		minX = 10000;
 		minY = 10000;
 		width = Constants.ROBOT_WIDTH;
-		voidWidth = (int) (width / 2 + 3);
+		voidWidth = (int) (width / 2);
 		reactorVoidWidth = voidWidth + 6;
 		landmarks = new ArrayList<List<Entry<Double, Double>>>();
 		for (int i=0; i<3; i++) {
@@ -375,7 +375,7 @@ public class SparseGrid {
 				double targetX = x + width/2 * Math.cos(theta) + landmark.getKey() * Math.cos(absTheta);
 				double targetY = y + width/2 * Math.sin(theta) + landmark.getKey() * Math.sin(absTheta);
 				double closestD = findLandmarkError(targetX, targetY, i);
-				//logProb += Math.log(gaussian(closestD, LANDMARK_SIGMA));
+				logProb += Math.log(gaussian(closestD, LANDMARK_SIGMA));
 			}
 		}
 		return logProb;

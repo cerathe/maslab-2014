@@ -7,14 +7,19 @@ public class GamePlayState extends State{
 	 * The top-level class that plays the game.
 	 */
 	long endTime;
+	boolean isStuck = false;
+	int whichStuck = 0; //1: ballCollect. 2: driveGoal;
 	int scoringAttempts = 0;
 	boolean goalSet = false;
 	BallCollectState ball;
 	DriveGoalState goal;
+	UnStuckState unstuck;
 	public GamePlayState(Navigation nav) {
 		endTime = System.nanoTime() + (long)(3) * 60 * 1000000000;
 		System.out.println(System.nanoTime());
 		System.out.println(endTime);
+		
+		unstuck = new UnStuckState(nav.loc);
 		ball = new BallCollectState(nav);
 		goal = new DriveGoalState(Constants.SPEED, nav);
 	}
@@ -32,7 +37,24 @@ public class GamePlayState extends State{
 			sensors.rightDriveMotor.setSpeed(0);
 			return 1;
 		}
-		if (System.nanoTime() > getTime(45) && scoringAttempts == 0) {
+		
+		if(isStuck){
+			System.out.println("STUCK");
+			int stuckResult = unstuck.step(sensors);
+			if(stuckResult==1){
+				isStuck = false;
+				switch(whichStuck){
+					case 1: ball.newGoal(nav); break;
+					case 2: goal.setGoal(goal.goal); break;
+					default: break;
+				}
+				
+			}
+			System.out.println("I am stuck: "+isStuck);
+			return 1;
+		}
+		
+		if (System.nanoTime() > getTime(5) && scoringAttempts == 0) {
 			// Try to dump
 			System.out.println("Trying to score");
 			if (!goalSet) {
@@ -40,15 +62,24 @@ public class GamePlayState extends State{
 				goalSet = true;
 			}
 			int outCode = goal.step(sensors);
-			if (outCode == 2 || System.nanoTime() > getTime(100)) {
+			if (outCode == 3){
+				whichStuck = 2;
+				isStuck = true;
+			}
+			else if (outCode == 2 || System.nanoTime() > getTime(150)) {
 				// We either scored, or we gave up trying.
 				scoringAttempts = 1;
 				goalSet = false;
+				ball.newGoal(nav);
 			}
 			return 0;
 		}
 
-		ball.step(nav, sensors);
+		int ballState = ball.step(nav, sensors);
+		if(ballState==3){
+			whichStuck = 1;
+			isStuck = true;
+		}
 		return 0;
 	}
 	

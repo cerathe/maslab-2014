@@ -12,10 +12,12 @@ public class DriveGoalState extends State{
 	TurnState ts = new TurnState();
 	DriveStraightState deadReckon = new DriveStraightState();
 	PointTrackState pointTrack = new PointTrackState(Constants.SPEED);
+	final int MAX_TURN_TIME = 100;
 	int substate = 0;
 	int deadReckonCount = 0;
 	int dumpCount = 0;
 	int backCount = 0;
+	int turnTimer = 0;
 	public Navigation nav;
 	public double finalAngle;
 	public double speed;
@@ -40,28 +42,14 @@ public class DriveGoalState extends State{
 		}
 		SimpleEntry<Integer,Integer> n1 = pt.normPt1;
 		SimpleEntry<Integer,Integer> n2 = pt.normPt2;
-		System.out.println(n1 + " " +n2);
-		LinkedList<SimpleEntry<Integer, Integer>> p1 = nav.naiveWallFollow(curr,n1);
-		LinkedList<SimpleEntry<Integer, Integer>> p2 = nav.naiveWallFollow(curr, n2);
-		System.out.println("p1: "+p1);
-		//Give the path to follow.
-		if(nav.loc.grid.getNeighbors(p1.peekLast()).contains(n1) || p1.peekLast().equals(n1)){
-			System.out.println("1! "+p1.peekLast());
-			path = nav.cleanUpNaive(p1);
-			double xdiff = pt.actualMidpoint.getKey() - pt.normPt1.getKey();
-			double ydiff = pt.actualMidpoint.getValue() - pt.normPt1.getValue();
-			finalAngle = Math.atan2(xdiff, ydiff);
-		}
-		else if(nav.loc.grid.getNeighbors(p2.peekLast()).contains(n2) || p2.peekLast().equals(n2)){
-			System.out.println("2!");
-			path = nav.cleanUpNaive(p2);
-			double xdiff = pt.actualMidpoint.getKey() - pt.normPt2.getKey();
-			double ydiff = pt.actualMidpoint.getValue() - pt.normPt2.getValue();
-			finalAngle = Math.atan2(xdiff, ydiff);
+		if(nav.loc.grid.accessibleArea.containsKey(n1)){
+			path = nav.cleanUpNaive(nav.naiveWallFollow(curr, n1));
 		}
 		else{
-			System.out.println("Couldn't reach this goal at " + pt.actualMidpoint);
+			path = nav.cleanUpNaive(nav.naiveWallFollow(curr, n2));
 		}
+		pfs = new PathFollowState(speed, path);
+		substate = 0;
 	}
 	
 	public int step(Sensors s){
@@ -70,6 +58,7 @@ public class DriveGoalState extends State{
 		 * 0 - No path to goal
 		 * 1 - Nav-ing
 		 * 2 - Done
+		 * 3 - Stuck
 		 */
 		double ANGLE_TOLERANCE = 0.05;
 		if (substate == 0) {
@@ -78,28 +67,6 @@ public class DriveGoalState extends State{
 			if(path==null){
 				return 0;
 			}
-			if(deadReckonCount>1){
-				//backing up
-				deadReckonCount--;
-				pointTrack.step(nav, s, goal.actualMidpoint);
-				return 1;
-			}
-			if (deadReckonCount==2) {
-				nav.loc.relocalize = true;
-				deadReckonCount--;
-			}
-			
-			if(deadReckonCount==1){
-				setGoal(goal);
-				deadReckonCount--;
-				return 1;
-			}
-			if (nav.loc.stuck) {
-				// Stuck.
-				deadReckonCount = 20;
-				return 1;
-			}
-			
 			else if(pfs==null){
 				pfs = new PathFollowState(speed, path);
 				pfs.step(nav, s);
@@ -109,18 +76,27 @@ public class DriveGoalState extends State{
 				//If you've reached the point, turn to face it.
 				SimpleEntry<Integer, Integer> robotLoc = 
 						new SimpleEntry<Integer, Integer>((int) nav.loc.grid.robotX, (int) nav.loc.grid.robotY);
-				if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 2){
+				if (nav.loc.grid.dist(path.peekLast(), robotLoc) < 3){
 					s.leftDriveMotor.setSpeed(0);
 					s.rightDriveMotor.setSpeed(0);
 					substate = 1;
+					turnTimer = MAX_TURN_TIME;
 					return 1;
 				}
 				else{
-					pfs.step(nav,s);
+					int pathstate = pfs.step(nav,s);
+					if(pathstate==2){
+						return 3;
+					}
 					return 1;
 				}
 			}
 		} else if (substate == 1) {
+			if (turnTimer == 0) {
+				// That didn't work :(
+				return 0;
+			}
+			turnTimer--;
 			System.out.println("Turning towards goal");
 			// Turn towards goal
 			double xDiff = goal.actualMidpoint.getKey() - nav.loc.grid.robotX;
@@ -165,7 +141,7 @@ public class DriveGoalState extends State{
 				return 1;
 			} else {
 				s.rightDump.setAngle(s.rightDump.getMinAngle());
-				backCount = 30;
+				backCount = 50;
 				substate = 4;
 				return 1;
 			}
@@ -173,7 +149,7 @@ public class DriveGoalState extends State{
 			System.out.println("Backing up");
 			// Back out.
 			if (backCount > 0) {
-				deadReckon.step(nav.loc, s, -5);
+				deadReckon.step(nav.loc, s, -8);
 				backCount--;
 				return 1;
 			} else {
@@ -182,7 +158,7 @@ public class DriveGoalState extends State{
 				s.rightDriveMotor.setSpeed(0);
 				return 1;				
 			}
-		}
+		} 
 		return 2;
 	}
 }

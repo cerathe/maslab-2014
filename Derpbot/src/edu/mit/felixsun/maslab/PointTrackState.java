@@ -13,7 +13,7 @@ public class PointTrackState extends State{
 	
 	double acceptableAngle = 0.5;
 	double driveSpeed;
-	double PGAIN = .05;
+	double PGAIN = .01;
 	long expectedTime = -1;
 	long startTime;
 
@@ -34,7 +34,7 @@ public class PointTrackState extends State{
 		double dist = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
 		
 		if(expectedTime==-1){
-			expectedTime = (long)(dist/lowestSpeed)*(long)(1000);
+			expectedTime = (long)(dist/lowestSpeed)*(long)(1000) + (long)10000;
 			startTime = System.currentTimeMillis();
 		}
 
@@ -43,23 +43,23 @@ public class PointTrackState extends State{
 			expectedTime = -1;
 			return 1;
 		}
-//		System.out.println(angleDiff);
+		System.out.println(angleDiff);
 		if(System.currentTimeMillis() - startTime>expectedTime){
 			return 2;
 		}
 		if(Math.abs(angleDiff)<acceptableAngle){
 			motorA = driveSpeed - angleDiff * PGAIN;
 			motorB = driveSpeed + angleDiff * PGAIN;
-			System.out.format("Motor speeds: %f, %f", motorA, motorB);
 			sensors.leftDriveMotor.setSpeed(motorA);
 			sensors.rightDriveMotor.setSpeed(-motorB);
+			turnState = new TurnState();
 		}
 		else if (angleDiff < 0){
-//			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, -13 * driveSpeed);
+			System.out.println("Turn A");
+			turnState.step(nav.loc, sensors, -9 * driveSpeed);
 		} else {
-//			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, 13 * driveSpeed);
+			System.out.println("Turn B");
+			turnState.step(nav.loc, sensors, 9 * driveSpeed);
 		}
 //		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		return 0;

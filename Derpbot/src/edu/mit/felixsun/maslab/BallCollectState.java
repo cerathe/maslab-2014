@@ -42,32 +42,11 @@ public class BallCollectState extends State {
 	public int step(Navigation nav, Sensors sensors){
 		/* 
 		 * Return codes:
+		 * 3 - stuck
 		 * 1 - following ball
 		 * 0 - looking
 		 */
 		// 0 - If stuck, back up for a bit, then choose a new goal.
-		if (nav.loc.stuck) {
-			stuckCount = 30;
-		}
-		
-		if (stuckCount > 10) {
-			// Stuck - back up.
-			backState.step(nav.loc, sensors, -10);
-			stuckCount--;
-			return 0;
-		}
-		
-		if (stuckCount > 0) {
-			// Then turn for a bit.
-			turnState.step(nav.loc, sensors, 1);
-			stuckCount--;
-			// At the very end, re-nav.
-			if (stuckCount == 0) {
-				newGoal(nav);
-			}
-			return 0;
-		}
-		
 		if (ramCount > 0) {
 			backState.step(nav.loc, sensors, 18);
 			ramCount--;
@@ -75,6 +54,10 @@ public class BallCollectState extends State {
 		
 		// 1 - If we see a ball, go for it.
 		int result = myBall.step(nav.loc, sensors);
+		if (result == 3) {
+			// Stuck
+			return 3;
+		}
 		if (result == 1) {
 			System.out.println("Ball");
 			lastReturn = 1;
@@ -89,6 +72,10 @@ public class BallCollectState extends State {
 		result = myPath.step(nav, sensors);
 		if (result == 1) {
 			newGoal(nav);
+		}
+		else if(result==2) {
+			newGoal(nav);
+			return 3;
 		}
 		lastReturn = 0;
 		return 0;

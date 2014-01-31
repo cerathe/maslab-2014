@@ -41,7 +41,7 @@ public class PathFollowState {
 			}
 		}
 		else if(currState == 2){ //If the path failed...
-			return 1;
+			return 2;
 		}
 		return 0;
 	}

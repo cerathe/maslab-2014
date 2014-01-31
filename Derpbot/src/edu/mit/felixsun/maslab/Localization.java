@@ -7,15 +7,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 
 import comm.BotClientMap;
 import comm.BotClientMap.Pose;
 
 public class Localization {
-	public final static int PARTICLE_COUNT = 50; 	// How many samples of the world?
-	public final static int PRUNED_COUNT = 30;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 3;			// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0.3;			// Radians / second
+	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
+	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
+	public final static double TRAVEL_DRIFT_SPEED = 5;			// Inches / second
+	public final static double TURN_DRIFT_SPEED = 1;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.02;
@@ -29,6 +30,10 @@ public class Localization {
 	public double turnSpeed;
 	public boolean stuck;
 	public boolean relocalize = false;		// If this is set to true, we start from scratch and relocalize.
+	int initialCountdown = 20;
+	List<Double> initialProbs = new ArrayList<Double>();
+	double meanProb;
+	double sdProb;
 	double normalization;
 	long lastUpdateTime;
 	int stuckCount;
@@ -70,7 +75,6 @@ public class Localization {
 		/*
 		 * Rebuilds the localization data from scratch.  Call this if we get really lost.
 		 * Kind of computationally intensive.
-		 * - Maybe we need to rethink this?
 		 */
 		System.out.println("Reloc");
 		int RELOCALIZE_PARTICLE_COUNT = 5000;
@@ -80,6 +84,12 @@ public class Localization {
 			double angle = 2*Math.PI*rng.nextDouble() - Math.PI;
 			double x = rng.nextDouble() * grid.maxX;
 			double y = rng.nextDouble() * grid.maxY;
+			// First of all, is it actually on the field?
+			Entry<Integer, Integer> point = new SimpleEntry<Integer, Integer>(
+					(int)x, (int)y);
+			if (!grid.accessibleArea.containsKey(point)) {
+				continue;
+			}
 			double prob = grid.stateLogProb(data, x, y, angle);
 			hypotheses.add(new Pose(x, y, angle, prob));
 		}
@@ -107,31 +117,17 @@ public class Localization {
 		
 		double deltaT = (double) (System.nanoTime() - lastUpdateTime) / 1000000000;
 		lastUpdateTime = System.nanoTime();
-		
+//		double realRightEncoder = Math.abs(sensors.rightEncoder.getDeltaAngularDistance())
+//				* Math.signum(sensors.rightDriveMotor.lastSet) * -1;
+		double realRightEncoder = sensors.rightEncoder.getDeltaAngularDistance();
 		// Calculate drift using encoders.
 		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
-		double deltaRight = sensors.rightEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
+		double deltaRight = realRightEncoder * Constants.WHEEL_RADIUS;
 		double forward = (deltaLeft + deltaRight) / 2;
 		double turn = (deltaRight - deltaLeft) / Constants.WHEELBASE_WIDTH;
 		forwardSpeed = forward / deltaT;
 		turnSpeed = turn / deltaT;
 
-		// Are we stuck?
-		if ((Math.abs(sensors.leftDriveMotor.lastSet) > 0.01 || 
-				Math.abs(sensors.rightDriveMotor.lastSet) > 0.01) &&
-				Math.abs(deltaLeft) < STUCK_VEL*deltaT &&
-				Math.abs(deltaRight) < STUCK_VEL*deltaT) {
-			stuckCount++;
-		} else {
-			stuckCount = 0;
-		}
-		if (stuckCount > 30) {
-			stuck = true;
-			System.out.println("Oh fuck, we're stuck.");
-		} else {
-			stuck = false;
-		}
-		System.out.println(turn);
 		// Update each particle with the expected drift.
 		// Update the probability of each particle.
 		for (int i=0; i<PARTICLE_COUNT; i++) {
@@ -164,9 +160,40 @@ public class Localization {
 		}
 		Pose bestGuess = robotPositions.get(0);
 		normalization = bestGuess.prob;
-//		System.out.println(normalization);
+		// Update the average prob.
+		if (initialCountdown > 0) {
+			initialProbs.add(normalization);
+			initialCountdown--;
+			if (initialCountdown == 0) {
+				// Calculate mean and SD
+				meanProb = mean(initialProbs);
+				sdProb = standardDeviation(initialProbs);
+			}
+		} else {
+			if (normalization < meanProb - 3*sdProb) {
+				// OK. this isn't right.  Relocalize now!
+				relocalize = true;
+			}
+		}
 		grid.robotX = bestGuess.x;
 		grid.robotY = bestGuess.y;
 		grid.robotTheta = bestGuess.theta;
+	}
+	
+	double mean(List<Double> numbers) {
+		double sum = 0;
+		for(double number : numbers) {
+			sum += number;
+		}
+		return sum / numbers.size();
+	}
+	
+	double standardDeviation(List<Double> numbers) {
+		double var = 0;
+		double mean = mean(numbers);
+		for(double number : numbers) {
+			var += Math.pow((number - mean), 2);
+		}
+		return Math.pow(var, 0.5);
 	}
 }
