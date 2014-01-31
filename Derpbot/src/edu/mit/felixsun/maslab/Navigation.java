@@ -21,11 +21,7 @@ public class Navigation {
 		//up to the first obstruction.
 		double xint;
 		double yint;
-		boolean startInVoid = false;
-		if(!loc.grid.allowedSpace(x1,y1)){
-			startInVoid = true;
-		}
-		
+
 		//figure out slopes
 		if (x2 == x1){
 			xint = 0;
@@ -46,7 +42,7 @@ public class Navigation {
 				yint = y2>y1? 0.5:-0.5;
 			}
 		}
-		
+
 		//make the path
 		LinkedList<SimpleEntry<Integer,Integer>> path = new LinkedList<SimpleEntry<Integer,Integer>>();
 		path.add(new SimpleEntry<Integer,Integer>(x1,y1));
@@ -60,20 +56,13 @@ public class Navigation {
 				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
 				term = true;
 			}
-			if(!startInVoid){
-				if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
-					term=true;
-				}
-				else{
-					path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
-				}
+			if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
+				term=true;
 			}
 			else{
 				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
-				if(loc.grid.allowedSpace((int)x, (int)y)){
-					startInVoid = false;
-				}
 			}
+
 		}
 		return path;
 	}
@@ -93,34 +82,48 @@ public class Navigation {
 		LinkedList<SimpleEntry<Integer,Integer>> path = new LinkedList<SimpleEntry<Integer,Integer>>();
 		SimpleEntry<Integer,Integer> p1 = new SimpleEntry<Integer, Integer>(x1,y1);
 		SimpleEntry<Integer,Integer> p2 = new SimpleEntry<Integer, Integer>(x2,y2);
-		//first Try
 		path.add(p1);
-		path.add(straightLine(p1,p2).peekLast());
+		
+		//Check if you start in the void
+		if(!loc.grid.accessibleArea.containsKey(p1)){
+			Entry<Integer, Integer> bestPt = new SimpleEntry<Integer,Integer>(0,0);
+			double bestDist=-1;
+			for(Entry<Integer,Integer> pt: loc.grid.accessibleArea.keySet()){
+				if(loc.grid.dist(p1, (SimpleEntry<Integer, Integer>) pt)<bestDist || bestDist==-1){
+					bestPt = pt;
+					bestDist = loc.grid.dist(p1, (SimpleEntry<Integer, Integer>) pt);
+				}
+			}
+			path.add((SimpleEntry<Integer, Integer>) bestPt);
+		}
+		else{
+			path.add(straightLine(p1,p2).peekLast());
+		}
 		HashSet<SimpleEntry<Integer,Integer>> traversedClosePts = new HashSet<SimpleEntry<Integer,Integer>>(); //points touching the void that have been checked.
 		LinkedList<SimpleEntry<Integer,Integer>> nextPts = new LinkedList<SimpleEntry<Integer,Integer>>(); //points to check
 		nextPts.addAll(loc.grid.getNeighbors(path.peekLast()));
 		
 		//traverse the wall until you hit a corner.
-		
+
 		//Places that count as hitting the target.
 		List<SimpleEntry<Integer, Integer>> finalSpots = loc.grid.getNeighbors(p2);
 		finalSpots.add(p2);
 		int tries = 0;
-		
+
 		//Assumes a path exists. which is fair.
 		while(nextPts.size() > 0 && tries < MAX_TRIES){
 			tries ++;
 			//pick out the next point to check.
 			SimpleEntry<Integer,Integer> thisPt = nextPts.poll();
-			
+
 			//If we've already been here before, don't bother.
 			if(traversedClosePts.contains(thisPt)){
 				continue;
 			}
-			
+
 			//Get the neighbors of thisPt that are touching a wall
 			LinkedList<SimpleEntry<Integer, Integer>> neighbors = loc.grid.getWallNeighbors(thisPt);
-			
+
 			//Try to draw a straight line to the target.
 			LinkedList<SimpleEntry<Integer, Integer>> bestGuess = straightLine(thisPt, p2);
 			//how far you got before hitting something.
@@ -134,11 +137,11 @@ public class Navigation {
 			else{
 				//If you have only one or 3 wall neighbors, you've hit a corner
 				if(neighbors.size()==1 || neighbors.size()==3);
-					//Add the corner to the path.
-					path.add(thisPt);
-					//refresh the list of new points to try, .
-					nextPts.clear();
-				}
+				//Add the corner to the path.
+				path.add(thisPt);
+				//refresh the list of new points to try, .
+				nextPts.clear();
+			}
 			nextPts.addAll(neighbors);
 			//either way, you've been here.
 			traversedClosePts.add(thisPt);
@@ -166,10 +169,10 @@ public class Navigation {
 	public LinkedList<SimpleEntry<Integer, Integer>> cleanUpNaive(LinkedList<SimpleEntry<Integer,Integer>> naive){
 		//This cleanup runs in O(n^2)--is there better?
 		LinkedList<SimpleEntry<Integer, Integer>> finalPath = new LinkedList<SimpleEntry<Integer,Integer>>();
-		
+
 		Iterator<SimpleEntry<Integer, Integer>> it = naive.iterator();
 		finalPath.add(naive.peekFirst());
-		
+
 		SimpleEntry<Integer,Integer> next;
 		SimpleEntry<Integer,Integer> secondNext;
 		next = it.next();
