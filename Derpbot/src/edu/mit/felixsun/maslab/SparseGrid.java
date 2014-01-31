@@ -28,7 +28,7 @@ public class SparseGrid {
 	public ConcurrentHashMap<Entry<Integer, Integer>, Boolean> accessibleArea = 
 			new ConcurrentHashMap<Entry<Integer, Integer>, Boolean>();
 	public BotClientMap theMap;
-	public double BASELINE_PROB = 0.0001;		// Probability that we observe a random (wrong) wall segment.
+	public double BASELINE_PROB = 0.0000001;		// Probability that we observe a random (wrong) wall segment.
 	public double MAX_ERROR_RADIUS = 18;		// The farthest out we search, when looking for the closest wall.
 	public List<Integer> wallNumbers = Arrays.asList(1, 2, 3, 4);
 	Set<SimpleEntry<Integer,Integer>> voidArea = new HashSet<SimpleEntry<Integer,Integer>>();
@@ -375,7 +375,7 @@ public class SparseGrid {
 				double targetX = x + width/2 * Math.cos(theta) + landmark.getKey() * Math.cos(absTheta);
 				double targetY = y + width/2 * Math.sin(theta) + landmark.getKey() * Math.sin(absTheta);
 				double closestD = findLandmarkError(targetX, targetY, i);
-				logProb += Math.log(gaussian(closestD, LANDMARK_SIGMA));
+				//logProb += Math.log(gaussian(closestD, LANDMARK_SIGMA));
 			}
 		}
 		return logProb;

@@ -15,8 +15,8 @@ import comm.BotClientMap.Pose;
 public class Localization {
 	public final static int PARTICLE_COUNT = 30; 	// How many samples of the world?
 	public final static int PRUNED_COUNT = 15;		// How many samples do we keep at the end of each step?
-	public final static double TRAVEL_DRIFT_SPEED = 0;			// Inches / second
-	public final static double TURN_DRIFT_SPEED = 0;			// Radians / second
+	public final static double TRAVEL_DRIFT_SPEED = 5;			// Inches / second
+	public final static double TURN_DRIFT_SPEED = 1;			// Radians / second
 	// How uncertain are we about our starting location?
 	public final static double INITIAL_DELTA_LOC = 2;
 	public final static double INITIAL_DELTA_ANGLE = 0.2;
@@ -30,6 +30,8 @@ public class Localization {
 	public double turnSpeed;
 	public boolean stuck;
 	public boolean relocalize = false;		// If this is set to true, we start from scratch and relocalize.
+	public double goalAngle = 0;
+	public double goalDistance = 1000;
 	int initialCountdown = 20;
 	List<Double> initialProbs = new ArrayList<Double>();
 	double meanProb;
@@ -105,6 +107,20 @@ public class Localization {
 	public void update(cvData data, Sensors sensors) {
 		
 		this.ballPolarLoc = data.ballPolarLoc;
+		List<Entry<Double,Double>> greenGoals = data.landmarks.get(0);
+		if (greenGoals != null && greenGoals.size() > 0) {
+			goalAngle = 0;
+			goalDistance = 72;
+			for (Entry<Double, Double> goalPoint : greenGoals) {
+				double dist = goalPoint.getKey();
+				if (dist < 48 && dist < goalDistance) {
+					goalAngle = goalPoint.getValue();
+					goalDistance = dist;
+				}
+			}
+		} else {
+			goalAngle = 0;
+		}
 		if (data.angles.size() == 0) {
 			return;
 		}
@@ -117,8 +133,6 @@ public class Localization {
 		
 		double deltaT = (double) (System.nanoTime() - lastUpdateTime) / 1000000000;
 		lastUpdateTime = System.nanoTime();
-//		double realRightEncoder = Math.abs(sensors.rightEncoder.getDeltaAngularDistance())
-//				* Math.signum(sensors.rightDriveMotor.lastSet) * -1;
 		double realRightEncoder = sensors.rightEncoder.getDeltaAngularDistance();
 		// Calculate drift using encoders.
 		double deltaLeft = -sensors.leftEncoder.getDeltaAngularDistance() * Constants.WHEEL_RADIUS;
@@ -128,6 +142,22 @@ public class Localization {
 		forwardSpeed = forward / deltaT;
 		turnSpeed = turn / deltaT;
 
+		if ((Math.abs(sensors.leftDriveMotor.lastSet) > 0.01 || 
+				Math.abs(sensors.rightDriveMotor.lastSet) > 0.01) &&
+				Math.abs(deltaLeft) < STUCK_VEL*deltaT &&
+				Math.abs(deltaRight) < STUCK_VEL*deltaT) {
+			stuckCount++;
+		} else {
+			stuckCount = 0;
+		}
+		if (stuckCount > 30) {
+			stuck = true;
+			System.out.println("Oh fuck, we're stuck.");
+		} else {
+			stuck = false;
+		}
+
+		
 		// Update each particle with the expected drift.
 		// Update the probability of each particle.
 		for (int i=0; i<PARTICLE_COUNT; i++) {
@@ -168,6 +198,7 @@ public class Localization {
 				// Calculate mean and SD
 				meanProb = mean(initialProbs);
 				sdProb = standardDeviation(initialProbs);
+				System.out.format("Mean: %f SD: %f", meanProb, sdProb);
 			}
 		} else {
 			if (normalization < meanProb - 3*sdProb) {

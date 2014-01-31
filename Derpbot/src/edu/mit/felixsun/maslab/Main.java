@@ -141,7 +141,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = true;
+	final static boolean SIMULATE = false;
 	final static boolean PRACTICE = true;
 	public static void main(String[] args) {
 		cvData data;
@@ -220,8 +220,13 @@ public class Main {
 		
 		BotClientMap map;
 		BotClient botClient;
-		if (SIMULATE || PRACTICE) {
+		if (SIMULATE) {
 			map = BotClientMap.getDefaultMap();
+		} else if (PRACTICE) {
+			map = BotClientMap.getDefaultMap();
+			long time = System.currentTimeMillis();
+			while (System.currentTimeMillis() - time < 5000) {
+			}
 		} else {
 			botClient = new BotClient("18.150.7.174:6667", "i5d76YlHmB", false);
 			while (!botClient.gameStarted()) {
@@ -245,13 +250,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			SimpleEntry<Integer, Integer> start = new SimpleEntry<Integer, Integer>(66, 50);
-			SimpleEntry<Integer, Integer> end = new SimpleEntry<Integer, Integer>(7,7);
-			LinkedList<SimpleEntry<Integer, Integer>> path =
-					navigation.cleanUpNaive(navigation.naiveWallFollow(start, end));
-			System.out.println("The path: " + path);
-			navigation.drawPath(path);
-//			topState.step(navigation, sensors);
+			topState.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
 			System.out.println(sort.step(1900, -1700,-2300));
 			

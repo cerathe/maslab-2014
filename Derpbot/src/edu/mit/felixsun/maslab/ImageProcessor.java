@@ -82,7 +82,7 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 120), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 80, 255), output);
 		//Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
 		return output;
 	}
@@ -92,7 +92,7 @@ public class ImageProcessor {
 		 * Given an object that is objectHeight tall in the real world, and shows up as
 		 * pixelHeight tall on camera, calculate how far away this object is from the camera.
 		 */
-		double FISHBOWL = 0.5;
+		double FISHBOWL = 0.4;
 		return (350.0 / pixelHeight) * objectHeight / (1 - Math.pow(Math.PI/2 - angle, 2) * FISHBOWL);
 	}
 
@@ -116,7 +116,7 @@ public class ImageProcessor {
 		// time.
 
 		processedImage = findWallsPoly(hsvImage, data, 1);
-	    findBalls(hsvImage, data);
+	    processedImage = findBalls(hsvImage, data);
 	    findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;

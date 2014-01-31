@@ -8,7 +8,7 @@ public class GamePlayState extends State{
 	 */
 	long endTime;
 	boolean isStuck = false;
-	int whichStuck = 0; //1: ballCollect. 2: driveGoal;
+	int lastState = 0; //1: ballCollect. 2: driveGoal;
 	int scoringAttempts = 0;
 	boolean goalSet = false;
 	BallCollectState ball;
@@ -38,12 +38,13 @@ public class GamePlayState extends State{
 			return 1;
 		}
 		
-		if(isStuck){
+		if(isStuck || nav.loc.stuck){
 			System.out.println("STUCK");
+			isStuck = true;
 			int stuckResult = unstuck.step(sensors);
 			if(stuckResult==1){
 				isStuck = false;
-				switch(whichStuck){
+				switch(lastState){
 					case 1: ball.newGoal(nav); break;
 					case 2: goal.setGoal(goal.goal); break;
 					default: break;
@@ -54,8 +55,9 @@ public class GamePlayState extends State{
 			return 1;
 		}
 		
-		if (System.nanoTime() > getTime(5) && scoringAttempts == 0) {
+		if (System.nanoTime() > getTime(30) && scoringAttempts == 0) {
 			// Try to dump
+			lastState = 2;
 			System.out.println("Trying to score");
 			if (!goalSet) {
 				goal.setGoal(getClosestGoal(nav, 3));
@@ -63,7 +65,6 @@ public class GamePlayState extends State{
 			}
 			int outCode = goal.step(sensors);
 			if (outCode == 3){
-				whichStuck = 2;
 				isStuck = true;
 			}
 			else if (outCode == 2 || System.nanoTime() > getTime(150)) {
@@ -76,8 +77,8 @@ public class GamePlayState extends State{
 		}
 
 		int ballState = ball.step(nav, sensors);
+		lastState = 1;
 		if(ballState==3){
-			whichStuck = 1;
 			isStuck = true;
 		}
 		return 0;

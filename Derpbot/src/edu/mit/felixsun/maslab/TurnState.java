@@ -21,25 +21,25 @@ public class TurnState extends State {
 		 * rate: negative means left.
 		 * rate in radians per second.
 		 */
-		double leftMotor = 0;
-		double rightMotor = 0;
-		if (lastRate != rate) {
-			// New problem.  (Not sure what to do here)
-			leftMotor = -rate/10;
-			rightMotor = rate/10;
-			lastRate = rate;
-			
-		} else {
-			// Left motor stabilizes turn rate.
-			// Right motor makes sure robot turns in place.
-			rightMotor = lastRight - FORWARD_GAIN * rate * loc.forwardSpeed;
-			leftMotor = lastLeft + TURN_GAIN * rate * (loc.turnSpeed - rate);
-		}
-		lastLeft = leftMotor;
-		lastRight = rightMotor;
-//		System.out.println(loc.forwardSpeed);
-//		System.out.println(loc.turnSpeed);
-		sensors.leftDriveMotor.setSpeed(leftMotor);
-		sensors.rightDriveMotor.setSpeed(-rightMotor);
+//		double leftMotor = 0;
+//		double rightMotor = 0;
+//		if (lastRate != rate) {
+//			// New problem.  (Not sure what to do here)
+//			leftMotor = -rate/10;
+//			rightMotor = rate/10;
+//			lastRate = rate;
+//			
+//		} else {
+//			// Left motor stabilizes turn rate.
+//			// Right motor makes sure robot turns in place.
+//			rightMotor = lastRight - FORWARD_GAIN * rate * loc.forwardSpeed;
+//			leftMotor = lastLeft + TURN_GAIN * rate * (loc.turnSpeed - rate);
+//		}
+//		lastLeft = leftMotor;
+//		lastRight = rightMotor;
+////		System.out.println(loc.forwardSpeed);
+////		System.out.println(loc.turnSpeed);
+		sensors.leftDriveMotor.setSpeed(-rate / 5);
+		sensors.rightDriveMotor.setSpeed(-rate / 5);
 	}
 }

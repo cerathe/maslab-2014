@@ -7,7 +7,7 @@ public class BallFollowState extends State {
 	int ballStreak = 0;
 	final double SPEED = Constants.SPEED;
 	final double GAIN = Constants.SPEED;
-	final int PLOW_TIME = 20;
+	final int PLOW_TIME = 30;
 	final int PAUSE_TIME = 20;
 	public BallFollowState() {
 		

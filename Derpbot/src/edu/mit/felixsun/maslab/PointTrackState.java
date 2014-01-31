@@ -6,7 +6,7 @@ import comm.BotClientMap.Pose;
 
 public class PointTrackState extends State{
 	double tolerance = 5;
-	double lowestSpeed = 3; // in/s
+	double lowestSpeed = 2; // in/s
 	
 	TurnState turnState = new TurnState();
 	double lastDiff;
@@ -56,10 +56,10 @@ public class PointTrackState extends State{
 		}
 		else if (angleDiff < 0){
 			System.out.println("Turn A");
-			turnState.step(nav.loc, sensors, -9 * driveSpeed);
+			turnState.step(nav.loc, sensors, -5 * driveSpeed);
 		} else {
 			System.out.println("Turn B");
-			turnState.step(nav.loc, sensors, 9 * driveSpeed);
+			turnState.step(nav.loc, sensors, 5 * driveSpeed);
 		}
 //		nav.loc.grid.safeSet(pt.getKey(),pt.getValue(),1);
 		return 0;

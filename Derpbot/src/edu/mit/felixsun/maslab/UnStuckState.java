@@ -41,7 +41,7 @@ public class UnStuckState {
 			}
 			else if(counter ==1){
 				counter --;
-				//l.relocalize = true;
+				l.relocalize = true;
 				return 2;
 			}
 			else{

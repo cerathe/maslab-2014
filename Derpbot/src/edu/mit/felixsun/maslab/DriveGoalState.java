@@ -67,6 +67,13 @@ public class DriveGoalState extends State{
 			if(path==null){
 				return 0;
 			}
+			if (nav.loc.goalDistance < 24) {
+				// Ram the goal directly.
+				substate = 2;
+				deadReckonCount = 50;
+				return 1;
+			}
+			
 			else if(pfs==null){
 				pfs = new PathFollowState(speed, path);
 				pfs.step(nav, s);
@@ -106,11 +113,11 @@ public class DriveGoalState extends State{
 			angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
 			if (angleDiff < -ANGLE_TOLERANCE){
 //				System.out.println("Turn A");
-				ts.step(nav.loc, s, -13 * Constants.SPEED);
+				ts.step(nav.loc, s, -5 * Constants.SPEED);
 				return 1;
 			} else if (angleDiff > ANGLE_TOLERANCE) {
 //				System.out.println("Turn B");
-				ts.step(nav.loc, s, 13 * Constants.SPEED);
+				ts.step(nav.loc, s, 5 * Constants.SPEED);
 				return 1;
 			} else {
 				substate = 2;
@@ -121,9 +128,18 @@ public class DriveGoalState extends State{
 			}
 		} else if (substate == 2) {
 			// Dead-reckon into goal.
+			double thisSpeed = 0.6 * Constants.SPEED;
+			double GOAL_GAIN = 0.8 * thisSpeed;
 			System.out.println("Ramming goal.");
-			if (deadReckonCount > 0 && !nav.loc.stuck) {
-				deadReckon.step(nav.loc, s, 8);
+			if (deadReckonCount > 0) {
+				if (nav.loc.goalAngle == 0) {
+					s.leftDriveMotor.setSpeed(thisSpeed);
+					s.rightDriveMotor.setSpeed(-thisSpeed);
+				} else {
+					double deltaSpeed = (nav.loc.goalAngle - Math.PI/2) * GOAL_GAIN;
+					s.leftDriveMotor.setSpeed(thisSpeed - deltaSpeed);
+					s.rightDriveMotor.setSpeed(-thisSpeed - deltaSpeed);
+				}
 				deadReckonCount--;
 				return 1;
 			} else {

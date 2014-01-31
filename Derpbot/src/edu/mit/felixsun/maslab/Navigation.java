@@ -56,7 +56,7 @@ public class Navigation {
 				path.add(new SimpleEntry<Integer,Integer>((int)x, (int)y));
 				term = true;
 			}
-			if(!loc.grid.allowedSpace(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
+			if(!loc.grid.accessibleArea.containsKey(new SimpleEntry<Integer,Integer>((int)x, (int)y))){
 				term=true;
 			}
 			else{
