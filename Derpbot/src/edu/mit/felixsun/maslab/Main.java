@@ -141,7 +141,7 @@ class cvHandle implements Runnable {
 
 
 public class Main {
-	final static boolean SIMULATE = false;
+	final static boolean SIMULATE = true;
 	final static boolean PRACTICE = true;
 	public static void main(String[] args) {
 		cvData data;
@@ -245,12 +245,13 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-//			SimpleEntry<Integer, Integer> start = new SimpleEntry<Integer, Integer>(73, 50);
-//			SimpleEntry<Integer, Integer> end = new SimpleEntry<Integer, Integer>(7,7);
-//			LinkedList<SimpleEntry<Integer, Integer>> path =
-//					navigation.naiveWallFollow(start, end);
-//			System.out.println("The path: " + path);
-			topState.step(navigation, sensors);
+			SimpleEntry<Integer, Integer> start = new SimpleEntry<Integer, Integer>(66, 50);
+			SimpleEntry<Integer, Integer> end = new SimpleEntry<Integer, Integer>(7,7);
+			LinkedList<SimpleEntry<Integer, Integer>> path =
+					navigation.cleanUpNaive(navigation.naiveWallFollow(start, end));
+			System.out.println("The path: " + path);
+			navigation.drawPath(path);
+//			topState.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
 			System.out.println(sort.step(1900, -1700,-2300));
 			

@@ -188,7 +188,7 @@ public class SparseGrid {
 					int newX = deltaX[j] + point.getKey();
 					int newY = deltaY[j] + point.getValue();
 					Entry<Integer, Integer> newPt = new SimpleEntry<Integer, Integer>(newX, newY);
-					if (!accessibleArea.containsKey(newPt) && !map.containsKey(newPt)) {
+					if (!accessibleArea.containsKey(newPt) && !voidArea.contains(newPt)) {
 						accessibleArea.put(newPt, true);
 						newQueue.add(newPt);
 					}
