@@ -22,8 +22,8 @@ import edu.mit.felixsun.maslab.cvData;
 public class SimMapleComm implements CommInterface {
 	private List<MapleDevice> deviceList = new ArrayList<MapleDevice>();
 	private List<Entry<Double, Double>> balls = new ArrayList<Entry<Double, Double>>();
-	final double LEFT_MOTOR_BIAS = 5;	// Radians/s / motor unit
-	final double RIGHT_MOTOR_BIAS = 6;	// Radians/s / motor unit
+	final double LEFT_MOTOR_BIAS = 10;	// Radians/s / motor unit
+	final double RIGHT_MOTOR_BIAS = 12;	// Radians/s / motor unit
 	final double FRACTION_WHEEL_VARIATION = 0.2;	// Average error of wheel motion.
 	final double TIMESTEP = 0.1;		// seconds
 	final double TURN_DISCOUNT = 0.8;

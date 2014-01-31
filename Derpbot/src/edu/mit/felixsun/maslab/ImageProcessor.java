@@ -82,8 +82,8 @@ public class ImageProcessor {
 		 * Experimental: Finds white blobs.
 		 */
 		Mat output = new Mat();
-		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 80, 255), output);
-		//Core.inRange(input, new Scalar(0, 0, 160), new Scalar(180, 80, 255), output);
+//		Core.inRange(input, new Scalar(0, 0, 140), new Scalar(180, 80, 255), output);
+		Core.inRange(input, new Scalar(0, 0, 150), new Scalar(180, 80, 255), output);
 		return output;
 	}
 	
@@ -115,25 +115,23 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-		processedImage = findWallsPoly(hsvImage, data, 1);
-	    findBalls(hsvImage, data);
-	    processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
+		findWallsPoly(hsvImage, data, 1);
+		findBalls(hsvImage, data, greenLowerH, greenUpperH);
+		findBalls(hsvImage, data, redLowerH, redUpperH);
+		processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
 	}
 
 	
-	static Mat findBalls(Mat hsvImage, cvData data) {
+	static Mat findBalls(Mat hsvImage, cvData data, int lowerH, int upperH) {
 		int MIN_BALL_HEIGHT = 250;
 		double BALL_RATIO = 2;
 		double MIN_FILL_PROPORTION = 0.2;
 		double MIN_BALL_AREA = 20;
 	    // Find balls - both red and green in one shot.
-	    Mat redMask = colorFilter(hsvImage, redLowerH, redUpperH);
-	    Mat greenMask = colorFilter(hsvImage, greenLowerH, greenUpperH);
-	    Mat colorMask = new Mat();
-	    Core.add(redMask, greenMask, colorMask);
+	    Mat colorMask = colorFilter(hsvImage, lowerH, upperH);
 		// Find blobs of color
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		// Also show the masked input.
@@ -187,8 +185,11 @@ public class ImageProcessor {
 		double angularPos = angularPosition(bestBoundingRect.x+bestBoundingRect.width/2, hsvImage.width());
 		double distance = distanceConvert(approxDiam, ballDiameter, angularPos);
 		Entry<Double, Double> polarLoc = new SimpleEntry<Double, Double>(distance, angularPos);
-		data.ballPolarLoc = polarLoc;
-
+		if (lowerH == greenLowerH) {
+			data.ballGreenPolarLoc = polarLoc;
+		} else {
+			data.ballRedPolarLoc = polarLoc;
+		}
 		return processedImage;
 	}
 	
@@ -275,6 +276,10 @@ public class ImageProcessor {
 				new Point(0, 0), 2);
 		Imgproc.dilate(colorMask, colorMask, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)),
 				new Point(0, 0), 2);
+//		Imgproc.cvtColor(colorMask, processedImage, Imgproc.COLOR_GRAY2BGR);
+//		if (5>4) {
+//			return processedImage;
+//		}
 		//Separate into connected components
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         Mat hierarchy = new Mat();
@@ -420,8 +425,8 @@ public class ImageProcessor {
         double cameraX = grid.robotX + Constants.ROBOT_WIDTH/2 * Math.cos(grid.robotTheta);
         double cameraY = grid.robotY + Constants.ROBOT_WIDTH/2 * Math.sin(grid.robotTheta);
         //Draw ball.
-        double angle = data.ballPolarLoc.getValue();
-		double distance = data.ballPolarLoc.getKey();
+        double angle = data.ballRedPolarLoc.getValue();
+		double distance = data.ballRedPolarLoc.getKey();
 		if (distance > 0) {
 			double x = cameraX + distance * (Math.cos(grid.robotTheta + angle - Math.PI/2));
 			double y = cameraY + distance * (Math.sin(grid.robotTheta + angle - Math.PI/2));

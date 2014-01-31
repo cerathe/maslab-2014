@@ -195,7 +195,7 @@ public class Main {
 		comm.registerDevice(sensors.photoresistor);
 		comm.registerDevice(sensors.redled);
 		comm.registerDevice(sensors.greenled);
-		comm.registerDevice(sensors.sorter);
+	//	comm.registerDevice(sensors.sorter);
 		comm.registerDevice(sensors.rollerDirection);
 		comm.registerDevice(sensors.rollerPWM);
 		comm.registerDevice(sensors.spiralDirection);
@@ -206,8 +206,8 @@ public class Main {
 		
 		ground3.setValue(false);
 		ground4.setValue(false);
-		sensors.redled.setValue(false);
-		sensors.greenled.setValue(true);
+		sensors.redled.setValue(true);
+		sensors.greenled.setValue(false);
 		sensors.rollerDirection.setValue(false);
 		sensors.rollerPWM.setValue(1);
 		sensors.spiralPWM.setValue(0.3);
@@ -220,9 +220,10 @@ public class Main {
 		
 		BotClientMap map;
 		BotClient botClient;
-		if (SIMULATE) {
-			map = BotClientMap.getDefaultMap();
-		} else if (PRACTICE) {
+//		if (SIMULATE) {
+//			map = BotClientMap.getDefaultMap();
+//		} else 
+		if (PRACTICE) {
 			map = BotClientMap.getDefaultMap();
 			long time = System.currentTimeMillis();
 			while (System.currentTimeMillis() - time < 5000) {
@@ -252,17 +253,22 @@ public class Main {
 			}
 			topState.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
-			System.out.println(sort.step(1900, -1700,-2300));
+			System.out.println(sort.step(860, -1700,-2300));
 			
+			if (localization.relocalize) {
+				// If we are going to relocalize next tick, turn off the motors.
+				sensors.leftDriveMotor.setSpeed(0);
+				sensors.rightDriveMotor.setSpeed(0);
+			}
 			Mat finalMap = ImageProcessor.drawGrid(new Size(600, 480), data, localization.grid);
 			comm.transmit();
 			cameraPane.updateWindow(finalMap);
-			if (SIMULATE) {
+			if (PRACTICE) {
 			} else {
-//				Mat smallMap = new Mat();
-//				Imgproc.resize(finalMap, smallMap, new Size(320, 240));
-//				BufferedImage out = Mat2Image.getImage(smallMap);
-//				botClient.sendImage(out);
+				Mat smallMap = new Mat();
+				Imgproc.resize(finalMap, smallMap, new Size(320, 240));
+				BufferedImage out = Mat2Image.getImage(smallMap);
+				botClient.sendImage(out);
 			}
 			try {
 				Thread.sleep(10);

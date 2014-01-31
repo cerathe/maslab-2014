@@ -148,6 +148,7 @@ public class DriveGoalState extends State{
 					s.leftDriveMotor.setSpeed(0);
 					s.rightDriveMotor.setSpeed(0);
 					s.rightDump.setAngle(s.rightDump.getMaxAngle());
+					s.leftDump.setAngle(s.leftDump.getMinAngle());
 					dumpCount = 40;
 					return 1;
 				} else {
@@ -162,6 +163,7 @@ public class DriveGoalState extends State{
 				return 1;
 			} else {
 				s.rightDump.setAngle(s.rightDump.getMinAngle());
+				s.leftDump.setAngle(s.leftDump.getMaxAngle());
 				backCount = 50;
 				substate = 4;
 				return 1;

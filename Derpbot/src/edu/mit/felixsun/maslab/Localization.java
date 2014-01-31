@@ -25,7 +25,8 @@ public class Localization {
 	BotClientMap map;
 	public SparseGrid grid;
 	public List<Pose> robotPositions;
-	public Entry<Double, Double> ballPolarLoc;	// Just pass this on for now.
+	public Entry<Double, Double> ballGreenPolarLoc;	// Just pass this on for now.
+	public Entry<Double, Double> ballRedPolarLoc;
 	public double forwardSpeed;
 	public double turnSpeed;
 	public boolean stuck;
@@ -106,7 +107,8 @@ public class Localization {
 	
 	public void update(cvData data, Sensors sensors) {
 		
-		this.ballPolarLoc = data.ballPolarLoc;
+		this.ballGreenPolarLoc = data.ballGreenPolarLoc;
+		this.ballRedPolarLoc = data.ballRedPolarLoc;
 		List<Entry<Double,Double>> greenGoals = data.landmarks.get(0);
 		if (greenGoals != null && greenGoals.size() > 0) {
 			goalAngle = 0;
@@ -203,7 +205,7 @@ public class Localization {
 		} else {
 			if (normalization < meanProb - 3*sdProb) {
 				// OK. this isn't right.  Relocalize now!
-				relocalize = true;
+				//relocalize = true;
 			}
 		}
 		grid.robotX = bestGuess.x;

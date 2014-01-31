@@ -39,8 +39,9 @@ public class BallCollectState extends State {
 		turnState = new TurnState();
 	}
 	
-	public int step(Navigation nav, Sensors sensors){
+	public int step(Navigation nav, Sensors sensors, int color){
 		/* 
+		 * color: 1=green 2=red
 		 * Return codes:
 		 * 3 - stuck
 		 * 1 - following ball
@@ -53,7 +54,7 @@ public class BallCollectState extends State {
 		}
 		
 		// 1 - If we see a ball, go for it.
-		int result = myBall.step(nav.loc, sensors);
+		int result = myBall.step(nav.loc, sensors, color);
 		if (result == 3) {
 			// Stuck
 			return 3;

@@ -55,8 +55,9 @@ public class GamePlayState extends State{
 			return 1;
 		}
 		
-		if (System.nanoTime() > getTime(30) && scoringAttempts == 0) {
-			// Try to dump
+		if (System.nanoTime() > getTime(60 * scoringAttempts + 30) && scoringAttempts < 2){
+			// We will try to score 3 times: at :30 and 1:30.  We give up after
+			// 30 seconds of trying.
 			lastState = 2;
 			System.out.println("Trying to score");
 			if (!goalSet) {
@@ -67,16 +68,21 @@ public class GamePlayState extends State{
 			if (outCode == 3){
 				isStuck = true;
 			}
-			else if (outCode == 2 || System.nanoTime() > getTime(150)) {
+			else if (outCode == 2 || System.nanoTime() > getTime(scoringAttempts * 60 + 60)) {
 				// We either scored, or we gave up trying.
-				scoringAttempts = 1;
+				scoringAttempts += 1;
 				goalSet = false;
 				ball.newGoal(nav);
 			}
 			return 0;
 		}
-
-		int ballState = ball.step(nav, sensors);
+		int color;
+		if (System.nanoTime() > getTime(120)) {
+			color = 2;
+		} else {
+			color = 1;
+		}
+		int ballState = ball.step(nav, sensors, color);
 		lastState = 1;
 		if(ballState==3){
 			isStuck = true;
