@@ -123,7 +123,7 @@ public class SimMapleComm implements CommInterface {
 			}	
 		}
 		if (bestBallPolar.getKey() < 1000) {
-			data.ballPolarLoc = bestBallPolar;
+			data.ballGreenPolarLoc = bestBallPolar;
 		}
 		if (removeIndex != -1) {
 			balls.remove(removeIndex);

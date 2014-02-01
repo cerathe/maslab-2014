@@ -251,7 +251,7 @@ public class Main {
 				}
 				localization.update(data, sensors);
 			}
-			topState.step(navigation, sensors);
+//			topState.step(navigation, sensors);
 			System.out.println(sensors.photoresistor.getValue());
 			System.out.println(sort.step(860, -1700,-2300));
 			

@@ -109,7 +109,7 @@ public class SparseGrid {
 			if(Math.max(startx, endx)>maxX){maxX = Math.max(startx,endx);}
 			if(Math.max(starty, endy)>maxY){maxY = Math.max(starty,endy);}
 			if(Math.min(startx, endx)<minX){minX = Math.min(startx, endx);}
-			if(Math.min(starty, endy)<minY){minY = Math.min(startx, endx);}
+			if(Math.min(starty, endy)<minY){minY = Math.min(starty, endy);}
 			
 			double slope = (endy-starty)/((double)(endx - startx));
 			// If this wall is a landmark, mark it.

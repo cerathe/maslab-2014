@@ -115,10 +115,10 @@ public class ImageProcessor {
 		// In the future, the robot controller may tell us to only do certain processes, to save
 		// time.
 
-		findWallsPoly(hsvImage, data, 1);
+		processedImage = findWallsPoly(hsvImage, data, 1);
 		findBalls(hsvImage, data, greenLowerH, greenUpperH);
 		findBalls(hsvImage, data, redLowerH, redUpperH);
-		processedImage = findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
+		findStripe(hsvImage, data, tealLowerH, tealUpperH, 0);
 		data.processedImage = processedImage;
 		data.offset = 3;
 		return data;
@@ -379,9 +379,9 @@ public class ImageProcessor {
 		 * Draws a the grid found in data.grid.
 		 * This will probably be moved to another class soon.
 		 */
-		double scale = 3;
-		double offsetX = grid.minX + 10;
-		double offsetY = grid.minY + 10;
+		double scale = 2;
+		double offsetX = - grid.minX;
+		double offsetY = - grid.minY;
 		Point tl, br;
 		class coordsToImgPoint {
 			/*
@@ -394,13 +394,13 @@ public class ImageProcessor {
 				scale = s;
 			}
 			Point cvt(Point coords) {
-				return new Point(offsetX + coords.x * scale,
-						offsetY + coords.y * scale);
+				return new Point((offsetX + coords.x )* scale,
+						(offsetY + coords.y) * scale);
 			}
 			
 			Point cvt(double x, double y) {
-				return new Point(offsetX + x * scale,
-						offsetY + y * scale);
+				return new Point((offsetX + x) * scale,
+						(offsetY + y) * scale);
 			}
 		}
 
